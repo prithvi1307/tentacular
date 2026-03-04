@@ -193,7 +193,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 
 			runResult, runErr := liveResult.MCPClient.WfRun(cmd.Context(), liveResult.Namespace, liveResult.WorkflowName, nil, 120)
 			// Clean up the dev deployment regardless of run outcome
-			liveResult.MCPClient.WfRemove(cmd.Context(), liveResult.Namespace, liveResult.WorkflowName)
+			_, _ = liveResult.MCPClient.WfRemove(cmd.Context(), liveResult.Namespace, liveResult.WorkflowName)
 
 			if runErr != nil {
 				return fmt.Errorf("pre-deploy live test: workflow run failed (use --force to skip): %w", runErr)

@@ -43,7 +43,7 @@ func LoadConfig() TentacularConfig {
 	if home != "" {
 		userPath := filepath.Join(home, ".tentacular", "config.yaml")
 		if data, err := os.ReadFile(userPath); err == nil {
-			yaml.Unmarshal(data, &cfg)
+			_ = yaml.Unmarshal(data, &cfg)
 		}
 	}
 
@@ -51,7 +51,7 @@ func LoadConfig() TentacularConfig {
 	projPath := filepath.Join(".tentacular", "config.yaml")
 	if data, err := os.ReadFile(projPath); err == nil {
 		var proj TentacularConfig
-		yaml.Unmarshal(data, &proj)
+		_ = yaml.Unmarshal(data, &proj)
 		mergeConfig(&cfg, &proj)
 	}
 

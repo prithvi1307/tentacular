@@ -243,7 +243,7 @@ func GenerateK8sManifests(wf *spec.Workflow, imageTag, namespace string, opts De
 		proxyHost = strings.TrimRight(proxyHost, "/")
 	}
 	denoFlags := spec.DeriveDenoFlags(wf.Contract, proxyHost)
-	if denoFlags != nil && len(denoFlags) > 0 {
+	if len(denoFlags) > 0 {
 		var lines []string
 		lines = append(lines, "          command:")
 		lines = append(lines, fmt.Sprintf("            - %s", denoFlags[0])) // "deno"

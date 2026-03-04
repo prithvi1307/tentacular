@@ -17,20 +17,20 @@ import (
 func TestSharedSecretsE2E_BuildSecretManifestResolvesSharedRef(t *testing.T) {
 	// Set up fake repo structure: repo root + workflow subdir
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 
 	sharedDir := filepath.Join(repoRoot, ".secrets")
-	os.MkdirAll(sharedDir, 0o755)
+	_ = os.MkdirAll(sharedDir, 0o755)
 	// Shared secret as JSON
-	os.WriteFile(filepath.Join(sharedDir, "github"), []byte(`{"token":"ghp_test123"}`), 0o644)
+	_ = os.WriteFile(filepath.Join(sharedDir, "github"), []byte(`{"token":"ghp_test123"}`), 0o644)
 	// Shared secret as plain text
-	os.WriteFile(filepath.Join(sharedDir, "hn-api-key"), []byte("hn_test_key\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(sharedDir, "hn-api-key"), []byte("hn_test_key\n"), 0o644)
 
 	wfDir := filepath.Join(repoRoot, "example-workflows", "test-wf")
-	os.MkdirAll(wfDir, 0o755)
+	_ = os.MkdirAll(wfDir, 0o755)
 
 	// Per-workflow .secrets.yaml using $shared references
-	os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`github: $shared.github
+	_ = os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`github: $shared.github
 hn_api_key: $shared.hn-api-key
 `), 0o644)
 
@@ -63,13 +63,13 @@ hn_api_key: $shared.hn-api-key
 // a clear error with the secret name.
 func TestSharedSecretsE2E_MissingSharedSecretErrors(t *testing.T) {
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
-	os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
 	// Do NOT create the "github" shared secret
 
 	wfDir := filepath.Join(repoRoot, "example-workflows", "missing-wf")
-	os.MkdirAll(wfDir, 0o755)
-	os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`github: $shared.github
+	_ = os.MkdirAll(wfDir, 0o755)
+	_ = os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`github: $shared.github
 `), 0o644)
 
 	_, err := buildSecretManifest(wfDir, "missing-wf", "default")
@@ -88,16 +88,16 @@ func TestSharedSecretsE2E_MissingSharedSecretErrors(t *testing.T) {
 // multiple $shared references in one .secrets.yaml are all resolved correctly.
 func TestSharedSecretsE2E_SharedSecretsDirContainsMultipleSecrets(t *testing.T) {
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 	sharedDir := filepath.Join(repoRoot, ".secrets")
-	os.MkdirAll(sharedDir, 0o755)
-	os.WriteFile(filepath.Join(sharedDir, "db"), []byte(`{"host":"db.internal","password":"secret"}`), 0o644)
-	os.WriteFile(filepath.Join(sharedDir, "slack"), []byte(`{"webhook":"https://hooks.slack.com/test"}`), 0o644)
-	os.WriteFile(filepath.Join(sharedDir, "api-token"), []byte("tok_plain\n"), 0o644)
+	_ = os.MkdirAll(sharedDir, 0o755)
+	_ = os.WriteFile(filepath.Join(sharedDir, "db"), []byte(`{"host":"db.internal","password":"secret"}`), 0o644)
+	_ = os.WriteFile(filepath.Join(sharedDir, "slack"), []byte(`{"webhook":"https://hooks.slack.com/test"}`), 0o644)
+	_ = os.WriteFile(filepath.Join(sharedDir, "api-token"), []byte("tok_plain\n"), 0o644)
 
 	wfDir := filepath.Join(repoRoot, "workflows", "multi-secret")
-	os.MkdirAll(wfDir, 0o755)
-	os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`db: $shared.db
+	_ = os.MkdirAll(wfDir, 0o755)
+	_ = os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`db: $shared.db
 slack: $shared.slack
 api_token: $shared.api-token
 `), 0o644)
@@ -125,12 +125,12 @@ api_token: $shared.api-token
 // $shared.<name> with path traversal characters is rejected with an error.
 func TestSharedSecretsE2E_PathTraversalInSharedRefErrors(t *testing.T) {
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
-	os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
 
 	wfDir := filepath.Join(repoRoot, "workflows", "evil-wf")
-	os.MkdirAll(wfDir, 0o755)
-	os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`steal: $shared.../../etc/passwd
+	_ = os.MkdirAll(wfDir, 0o755)
+	_ = os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`steal: $shared.../../etc/passwd
 `), 0o644)
 
 	_, err := buildSecretManifest(wfDir, "evil-wf", "default")
@@ -146,9 +146,9 @@ func TestSharedSecretsE2E_PathTraversalInSharedRefErrors(t *testing.T) {
 // with no .secrets.yaml and no .secrets/ returns nil without error.
 func TestSharedSecretsE2E_WorkflowWithNoSecretsSucceeds(t *testing.T) {
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 	wfDir := filepath.Join(repoRoot, "workflows", "no-secrets")
-	os.MkdirAll(wfDir, 0o755)
+	_ = os.MkdirAll(wfDir, 0o755)
 
 	manifest, err := buildSecretManifest(wfDir, "no-secrets", "default")
 	if err != nil {
@@ -163,14 +163,14 @@ func TestSharedSecretsE2E_WorkflowWithNoSecretsSucceeds(t *testing.T) {
 // reports shared secrets as provisioned when the .secrets/ dir at repo root exists.
 func TestSharedSecretsE2E_RepoRootSecretsCheck(t *testing.T) {
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 	sharedDir := filepath.Join(repoRoot, ".secrets")
-	os.MkdirAll(sharedDir, 0o755)
-	os.WriteFile(filepath.Join(sharedDir, "github"), []byte("token"), 0o644)
+	_ = os.MkdirAll(sharedDir, 0o755)
+	_ = os.WriteFile(filepath.Join(sharedDir, "github"), []byte("token"), 0o644)
 
 	wfDir := filepath.Join(repoRoot, "workflows", "check-wf")
-	os.MkdirAll(wfDir, 0o755)
-	os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`github: $shared.github
+	_ = os.MkdirAll(wfDir, 0o755)
+	_ = os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`github: $shared.github
 `), 0o644)
 
 	// readProvisionedSecrets should see the local .secrets.yaml as provisioned

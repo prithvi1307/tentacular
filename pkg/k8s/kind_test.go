@@ -13,7 +13,7 @@ import (
 func writeKubeconfig(t *testing.T, dir, content string) string {
 	t.Helper()
 	kubeDir := filepath.Join(dir, ".kube")
-	os.MkdirAll(kubeDir, 0o755)
+	_ = os.MkdirAll(kubeDir, 0o755)
 	path := filepath.Join(kubeDir, "config")
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("failed to write kubeconfig: %v", err)
@@ -41,8 +41,8 @@ users:
 `)
 
 	origKubeconfig := os.Getenv("KUBECONFIG")
-	os.Setenv("KUBECONFIG", kubeconfig)
-	defer os.Setenv("KUBECONFIG", origKubeconfig)
+	_ = os.Setenv("KUBECONFIG", kubeconfig)
+	defer func() { _ = os.Setenv("KUBECONFIG", origKubeconfig) }()
 
 	info, err := DetectKindCluster()
 	if err != nil {
@@ -79,8 +79,8 @@ users:
 `)
 
 	origKubeconfig := os.Getenv("KUBECONFIG")
-	os.Setenv("KUBECONFIG", kubeconfig)
-	defer os.Setenv("KUBECONFIG", origKubeconfig)
+	_ = os.Setenv("KUBECONFIG", kubeconfig)
+	defer func() { _ = os.Setenv("KUBECONFIG", origKubeconfig) }()
 
 	info, err := DetectKindCluster()
 	if err != nil {
@@ -101,8 +101,8 @@ func TestDetectKindClusterWithMissingKubeconfig(t *testing.T) {
 	tmpHome := t.TempDir()
 	// Point KUBECONFIG to a non-existent file
 	origKubeconfig := os.Getenv("KUBECONFIG")
-	os.Setenv("KUBECONFIG", filepath.Join(tmpHome, "nonexistent", "config"))
-	defer os.Setenv("KUBECONFIG", origKubeconfig)
+	_ = os.Setenv("KUBECONFIG", filepath.Join(tmpHome, "nonexistent", "config"))
+	defer func() { _ = os.Setenv("KUBECONFIG", origKubeconfig) }()
 
 	info, err := DetectKindCluster()
 	if err != nil {
@@ -127,8 +127,8 @@ users: []
 `)
 
 	origKubeconfig := os.Getenv("KUBECONFIG")
-	os.Setenv("KUBECONFIG", kubeconfig)
-	defer os.Setenv("KUBECONFIG", origKubeconfig)
+	_ = os.Setenv("KUBECONFIG", kubeconfig)
+	defer func() { _ = os.Setenv("KUBECONFIG", origKubeconfig) }()
 
 	info, err := DetectKindCluster()
 	if err != nil {
@@ -160,8 +160,8 @@ users:
 `)
 
 	origKubeconfig := os.Getenv("KUBECONFIG")
-	os.Setenv("KUBECONFIG", kubeconfig)
-	defer os.Setenv("KUBECONFIG", origKubeconfig)
+	_ = os.Setenv("KUBECONFIG", kubeconfig)
+	defer func() { _ = os.Setenv("KUBECONFIG", origKubeconfig) }()
 
 	info, err := DetectKindCluster()
 	if err != nil {
@@ -196,8 +196,8 @@ users:
 `)
 
 	origKubeconfig := os.Getenv("KUBECONFIG")
-	os.Setenv("KUBECONFIG", kubeconfig)
-	defer os.Setenv("KUBECONFIG", origKubeconfig)
+	_ = os.Setenv("KUBECONFIG", kubeconfig)
+	defer func() { _ = os.Setenv("KUBECONFIG", origKubeconfig) }()
 
 	info, err := DetectKindCluster()
 	if err != nil {
@@ -231,8 +231,8 @@ users:
 `)
 
 	origKubeconfig := os.Getenv("KUBECONFIG")
-	os.Setenv("KUBECONFIG", kubeconfig)
-	defer os.Setenv("KUBECONFIG", origKubeconfig)
+	_ = os.Setenv("KUBECONFIG", kubeconfig)
+	defer func() { _ = os.Setenv("KUBECONFIG", origKubeconfig) }()
 
 	info, err := DetectKindCluster()
 	if err != nil {
@@ -255,8 +255,8 @@ users: []
 `)
 
 	origKubeconfig := os.Getenv("KUBECONFIG")
-	os.Setenv("KUBECONFIG", kubeconfig)
-	defer os.Setenv("KUBECONFIG", origKubeconfig)
+	_ = os.Setenv("KUBECONFIG", kubeconfig)
+	defer func() { _ = os.Setenv("KUBECONFIG", origKubeconfig) }()
 
 	info, err := DetectKindCluster()
 	if err != nil {
@@ -270,8 +270,8 @@ users: []
 func TestLoadImageToKindReturnsErrorOnMissingBinary(t *testing.T) {
 	// Ensure kind binary is not found by using empty PATH
 	origPath := os.Getenv("PATH")
-	os.Setenv("PATH", "")
-	defer os.Setenv("PATH", origPath)
+	_ = os.Setenv("PATH", "")
+	defer func() { _ = os.Setenv("PATH", origPath) }()
 
 	err := LoadImageToKind("test-image:latest", "test-cluster")
 	if err == nil {

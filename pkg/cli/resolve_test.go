@@ -19,17 +19,17 @@ func newTestCmd() *cobra.Command {
 // TestResolveMCPClient_NilWhenNotConfigured verifies that resolveMCPClient
 // returns (nil, nil) when no MCP endpoint is configured.
 func TestResolveMCPClient_NilWhenNotConfigured(t *testing.T) {
-	os.Unsetenv("TNTC_MCP_ENDPOINT")
-	os.Unsetenv("TNTC_MCP_TOKEN")
+	_ = os.Unsetenv("TNTC_MCP_ENDPOINT")
+	_ = os.Unsetenv("TNTC_MCP_TOKEN")
 
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
-	os.Chdir(t.TempDir())
-	defer os.Chdir(origDir)
+	_ = os.Chdir(t.TempDir())
+	defer func() { _ = os.Chdir(origDir) }()
 
 	cmd := newTestCmd()
 	client, err := resolveMCPClient(cmd)
@@ -50,11 +50,11 @@ func TestResolveMCPClient_ReturnsClientWhenEnvSet(t *testing.T) {
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
-	os.Chdir(t.TempDir())
-	defer os.Chdir(origDir)
+	_ = os.Chdir(t.TempDir())
+	defer func() { _ = os.Chdir(origDir) }()
 
 	cmd := newTestCmd()
 	client, err := resolveMCPClient(cmd)
@@ -68,24 +68,24 @@ func TestResolveMCPClient_ReturnsClientWhenEnvSet(t *testing.T) {
 
 // TestResolveMCPClient_ReturnsClientWhenConfigFileSet verifies config file path.
 func TestResolveMCPClient_ReturnsClientWhenConfigFileSet(t *testing.T) {
-	os.Unsetenv("TNTC_MCP_ENDPOINT")
-	os.Unsetenv("TNTC_MCP_TOKEN")
+	_ = os.Unsetenv("TNTC_MCP_ENDPOINT")
+	_ = os.Unsetenv("TNTC_MCP_TOKEN")
 
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	configDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(configDir, 0o755)
-	os.WriteFile(filepath.Join(configDir, "config.yaml"),
+	_ = os.MkdirAll(configDir, 0o755)
+	_ = os.WriteFile(filepath.Join(configDir, "config.yaml"),
 		[]byte("mcp:\n  endpoint: http://mcp-from-file:8080\n"),
 		0o644)
 
 	projectDir := t.TempDir()
 	origDir, _ := os.Getwd()
-	os.Chdir(projectDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(projectDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	cmd := newTestCmd()
 	client, err := resolveMCPClient(cmd)
@@ -100,17 +100,17 @@ func TestResolveMCPClient_ReturnsClientWhenConfigFileSet(t *testing.T) {
 // TestRequireMCPClient_ErrorWhenNotConfigured verifies requireMCPClient returns
 // an error when MCP is not configured.
 func TestRequireMCPClient_ErrorWhenNotConfigured(t *testing.T) {
-	os.Unsetenv("TNTC_MCP_ENDPOINT")
-	os.Unsetenv("TNTC_MCP_TOKEN")
+	_ = os.Unsetenv("TNTC_MCP_ENDPOINT")
+	_ = os.Unsetenv("TNTC_MCP_TOKEN")
 
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
-	os.Chdir(t.TempDir())
-	defer os.Chdir(origDir)
+	_ = os.Chdir(t.TempDir())
+	defer func() { _ = os.Chdir(origDir) }()
 
 	cmd := newTestCmd()
 	_, err := requireMCPClient(cmd)
@@ -131,11 +131,11 @@ func TestRequireMCPClient_SuccessWhenConfigured(t *testing.T) {
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
-	os.Chdir(t.TempDir())
-	defer os.Chdir(origDir)
+	_ = os.Chdir(t.TempDir())
+	defer func() { _ = os.Chdir(origDir) }()
 
 	cmd := newTestCmd()
 	client, err := requireMCPClient(cmd)

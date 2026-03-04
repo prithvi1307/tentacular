@@ -149,28 +149,28 @@ Reports discrepancies and validates that deployed state matches contract intent.
 			}
 
 			// Text output
-			fmt.Fprintf(cmd.OutOrStdout(), "Audit Report: %s (namespace: %s)\n", wf.Name, namespace)
-			fmt.Fprintf(cmd.OutOrStdout(), "\nNetworkPolicy: %s\n", result.NetworkPolicy.Status)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Audit Report: %s (namespace: %s)\n", wf.Name, namespace)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "\nNetworkPolicy: %s\n", result.NetworkPolicy.Status)
 			for _, detail := range result.NetworkPolicy.Details {
-				fmt.Fprintf(cmd.OutOrStdout(), "  - %s\n", detail)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  - %s\n", detail)
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "\nSecrets: %s\n", result.Secrets.Status)
-			fmt.Fprintf(cmd.OutOrStdout(), "  Expected keys: %v\n", result.Secrets.ExpectedKeys)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "\nSecrets: %s\n", result.Secrets.Status)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  Expected keys: %v\n", result.Secrets.ExpectedKeys)
 			if len(result.Secrets.Missing) > 0 {
-				fmt.Fprintf(cmd.OutOrStdout(), "  Missing keys: %v\n", result.Secrets.Missing)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  Missing keys: %v\n", result.Secrets.Missing)
 			}
 			if len(result.Secrets.Extra) > 0 {
-				fmt.Fprintf(cmd.OutOrStdout(), "  Extra keys: %v\n", result.Secrets.Extra)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  Extra keys: %v\n", result.Secrets.Extra)
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "\nCronJobs: %s\n", result.CronJobs.Status)
-			fmt.Fprintf(cmd.OutOrStdout(), "  Expected: %d, Actual: %d\n", result.CronJobs.ExpectedCount, result.CronJobs.ActualCount)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "\nCronJobs: %s\n", result.CronJobs.Status)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  Expected: %d, Actual: %d\n", result.CronJobs.ExpectedCount, result.CronJobs.ActualCount)
 			for _, detail := range result.CronJobs.Details {
-				fmt.Fprintf(cmd.OutOrStdout(), "  - %s\n", detail)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "  - %s\n", detail)
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "\nOverall: %s\n", result.Overall)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "\nOverall: %s\n", result.Overall)
 
 			if result.Overall == "fail" {
 				return fmt.Errorf("audit failed - deployed resources do not match contract expectations")

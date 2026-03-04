@@ -2,29 +2,12 @@ package cli
 
 import (
 	"bytes"
-	"io"
-	"os"
 	"testing"
 
 	"github.com/randybias/tentacular/pkg/spec"
 )
 
 // --- Phase 5: Visualization --rich Mode Tests ---
-
-func captureOutput(f func()) string {
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	f()
-
-	w.Close()
-	os.Stdout = old
-
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	return buf.String()
-}
 
 func TestNewVisualizeCmdHasRichFlag(t *testing.T) {
 	cmd := NewVisualizeCmd()
@@ -158,7 +141,7 @@ func TestVisualizeRichFlagParsing(t *testing.T) {
 	cmd := NewVisualizeCmd()
 
 	// Test --rich flag
-	cmd.ParseFlags([]string{"--rich"})
+	_ = cmd.ParseFlags([]string{"--rich"})
 	rich, _ := cmd.Flags().GetBool("rich")
 	if !rich {
 		t.Error("expected --rich to be true")
@@ -166,7 +149,7 @@ func TestVisualizeRichFlagParsing(t *testing.T) {
 
 	// Test without flag (default false)
 	cmd2 := NewVisualizeCmd()
-	cmd2.ParseFlags([]string{})
+	_ = cmd2.ParseFlags([]string{})
 	rich2, _ := cmd2.Flags().GetBool("rich")
 	if rich2 {
 		t.Error("expected --rich to default to false")
@@ -281,7 +264,7 @@ func TestMermaidStableDependencyOrdering(t *testing.T) {
 		t.Fatal("expected all dependencies to appear in output")
 	}
 
-	if !(alphaIdx < charlieIdx && charlieIdx < deltaIdx && deltaIdx < zebraIdx) {
+	if alphaIdx >= charlieIdx || charlieIdx >= deltaIdx || deltaIdx >= zebraIdx {
 		t.Errorf("dependencies not in sorted order: alpha=%d, charlie=%d, delta=%d, zebra=%d",
 			alphaIdx, charlieIdx, deltaIdx, zebraIdx)
 	}

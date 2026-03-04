@@ -10,8 +10,8 @@ import (
 func TestSecretsCheckFindsRequiredSecrets(t *testing.T) {
 	dir := t.TempDir()
 	nodesDir := filepath.Join(dir, "nodes")
-	os.MkdirAll(nodesDir, 0o755)
-	os.WriteFile(filepath.Join(nodesDir, "notify.ts"), []byte(`
+	_ = os.MkdirAll(nodesDir, 0o755)
+	_ = os.WriteFile(filepath.Join(nodesDir, "notify.ts"), []byte(`
 import type { Context } from "tentacular";
 export default async function run(ctx: Context, input: unknown) {
   const webhook = ctx.secrets?.slack?.webhook_url;
@@ -32,8 +32,8 @@ export default async function run(ctx: Context, input: unknown) {
 func TestSecretsCheckReportsGaps(t *testing.T) {
 	dir := t.TempDir()
 	nodesDir := filepath.Join(dir, "nodes")
-	os.MkdirAll(nodesDir, 0o755)
-	os.WriteFile(filepath.Join(nodesDir, "store.ts"), []byte(`
+	_ = os.MkdirAll(nodesDir, 0o755)
+	_ = os.WriteFile(filepath.Join(nodesDir, "store.ts"), []byte(`
 const conn = ctx.secrets.postgres;
 const blob = ctx.secrets?.azure;
 `), 0o644)
@@ -61,13 +61,13 @@ const blob = ctx.secrets?.azure;
 func TestSecretsCheckAllProvisioned(t *testing.T) {
 	dir := t.TempDir()
 	nodesDir := filepath.Join(dir, "nodes")
-	os.MkdirAll(nodesDir, 0o755)
-	os.WriteFile(filepath.Join(nodesDir, "notify.ts"), []byte(`
+	_ = os.MkdirAll(nodesDir, 0o755)
+	_ = os.WriteFile(filepath.Join(nodesDir, "notify.ts"), []byte(`
 const webhook = ctx.secrets?.slack?.webhook_url;
 `), 0o644)
 
 	// Provision via .secrets.yaml
-	os.WriteFile(filepath.Join(dir, ".secrets.yaml"), []byte("slack:\n  webhook_url: test\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, ".secrets.yaml"), []byte("slack:\n  webhook_url: test\n"), 0o644)
 
 	provisioned, source := readProvisionedSecrets(dir)
 	if !provisioned["slack"] {
@@ -81,7 +81,7 @@ const webhook = ctx.secrets?.slack?.webhook_url;
 func TestSecretsInitCreatesFile(t *testing.T) {
 	dir := t.TempDir()
 	exampleContent := "# slack:\n#   webhook_url: \"https://hooks.slack.com/...\"\n"
-	os.WriteFile(filepath.Join(dir, ".secrets.yaml.example"), []byte(exampleContent), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, ".secrets.yaml.example"), []byte(exampleContent), 0o644)
 
 	// Simulate runSecretsInit by calling the logic directly
 	src := filepath.Join(dir, ".secrets.yaml.example")
@@ -97,7 +97,7 @@ func TestSecretsInitCreatesFile(t *testing.T) {
 	for _, line := range lines {
 		uncommented = append(uncommented, strings.TrimPrefix(line, "# "))
 	}
-	os.WriteFile(dst, []byte(strings.Join(uncommented, "\n")), 0o644)
+	_ = os.WriteFile(dst, []byte(strings.Join(uncommented, "\n")), 0o644)
 
 	result, err := os.ReadFile(dst)
 	if err != nil {
@@ -113,8 +113,8 @@ func TestSecretsInitCreatesFile(t *testing.T) {
 
 func TestSecretsInitRefusesOverwrite(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, ".secrets.yaml"), []byte("existing: true\n"), 0o644)
-	os.WriteFile(filepath.Join(dir, ".secrets.yaml.example"), []byte("# example\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, ".secrets.yaml"), []byte("existing: true\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, ".secrets.yaml.example"), []byte("# example\n"), 0o644)
 
 	// Check that .secrets.yaml exists
 	if _, err := os.Stat(filepath.Join(dir, ".secrets.yaml")); err != nil {
@@ -126,14 +126,14 @@ func TestSecretsInitRefusesOverwrite(t *testing.T) {
 func TestResolveSharedSecrets(t *testing.T) {
 	// Create a fake repo structure with .git and .secrets/
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 	sharedDir := filepath.Join(repoRoot, ".secrets")
-	os.MkdirAll(sharedDir, 0o755)
-	os.WriteFile(filepath.Join(sharedDir, "slack"), []byte(`{"webhook_url":"https://hooks.slack.com/test"}`), 0o644)
+	_ = os.MkdirAll(sharedDir, 0o755)
+	_ = os.WriteFile(filepath.Join(sharedDir, "slack"), []byte(`{"webhook_url":"https://hooks.slack.com/test"}`), 0o644)
 
 	// Create workflow dir inside repo
 	workflowDir := filepath.Join(repoRoot, "example-workflows", "test")
-	os.MkdirAll(workflowDir, 0o755)
+	_ = os.MkdirAll(workflowDir, 0o755)
 
 	secrets := map[string]interface{}{
 		"slack": "$shared.slack",
@@ -160,11 +160,11 @@ func TestResolveSharedSecrets(t *testing.T) {
 
 func TestResolveSharedSecretsMissing(t *testing.T) {
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
-	os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
 
 	workflowDir := filepath.Join(repoRoot, "workflows", "test")
-	os.MkdirAll(workflowDir, 0o755)
+	_ = os.MkdirAll(workflowDir, 0o755)
 
 	secrets := map[string]interface{}{
 		"slack": "$shared.nonexistent",
@@ -199,10 +199,10 @@ func TestResolveSharedSecretsNoRepoRoot(t *testing.T) {
 
 func TestFindRepoRoot(t *testing.T) {
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 
 	subDir := filepath.Join(repoRoot, "a", "b", "c")
-	os.MkdirAll(subDir, 0o755)
+	_ = os.MkdirAll(subDir, 0o755)
 
 	found := findRepoRoot(subDir)
 	if found != repoRoot {
@@ -212,10 +212,10 @@ func TestFindRepoRoot(t *testing.T) {
 
 func TestFindRepoRootGoMod(t *testing.T) {
 	root := t.TempDir()
-	os.WriteFile(filepath.Join(root, "go.mod"), []byte("module test\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, "go.mod"), []byte("module test\n"), 0o644)
 
 	nested := filepath.Join(root, "pkg", "sub")
-	os.MkdirAll(nested, 0o755)
+	_ = os.MkdirAll(nested, 0o755)
 
 	found := findRepoRoot(nested)
 	if found != root {
@@ -226,13 +226,13 @@ func TestFindRepoRootGoMod(t *testing.T) {
 func TestResolveSharedSecretsPlainText(t *testing.T) {
 	// Shared secret that is NOT valid JSON should fall back to plain string
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 	sharedDir := filepath.Join(repoRoot, ".secrets")
-	os.MkdirAll(sharedDir, 0o755)
-	os.WriteFile(filepath.Join(sharedDir, "api-key"), []byte("sk_test_plaintext\n"), 0o644)
+	_ = os.MkdirAll(sharedDir, 0o755)
+	_ = os.WriteFile(filepath.Join(sharedDir, "api-key"), []byte("sk_test_plaintext\n"), 0o644)
 
 	wfDir := filepath.Join(repoRoot, "workflows", "test")
-	os.MkdirAll(wfDir, 0o755)
+	_ = os.MkdirAll(wfDir, 0o755)
 
 	secrets := map[string]interface{}{
 		"api_key": "$shared.api-key",
@@ -264,13 +264,13 @@ func TestSecretsCheckNoNodes(t *testing.T) {
 func TestSecretsCheckMultipleNodes(t *testing.T) {
 	dir := t.TempDir()
 	nodesDir := filepath.Join(dir, "nodes")
-	os.MkdirAll(nodesDir, 0o755)
+	_ = os.MkdirAll(nodesDir, 0o755)
 
 	// Two nodes referencing different secrets
 	node1 := `const webhook = ctx.secrets?.slack?.webhook_url;`
 	node2 := `const conn = ctx.secrets.postgres; const blob = ctx.secrets?.azure;`
-	os.WriteFile(filepath.Join(nodesDir, "notify.ts"), []byte(node1), 0o644)
-	os.WriteFile(filepath.Join(nodesDir, "store.ts"), []byte(node2), 0o644)
+	_ = os.WriteFile(filepath.Join(nodesDir, "notify.ts"), []byte(node1), 0o644)
+	_ = os.WriteFile(filepath.Join(nodesDir, "store.ts"), []byte(node2), 0o644)
 
 	required, err := scanRequiredSecrets(dir)
 	if err != nil {
@@ -290,13 +290,13 @@ func TestSecretsCheckMultipleNodes(t *testing.T) {
 func TestSecretsCheckWithSecretsDir(t *testing.T) {
 	dir := t.TempDir()
 	nodesDir := filepath.Join(dir, "nodes")
-	os.MkdirAll(nodesDir, 0o755)
-	os.WriteFile(filepath.Join(nodesDir, "fetch.ts"), []byte(`ctx.secrets?.github?.token`), 0o644)
+	_ = os.MkdirAll(nodesDir, 0o755)
+	_ = os.WriteFile(filepath.Join(nodesDir, "fetch.ts"), []byte(`ctx.secrets?.github?.token`), 0o644)
 
 	// Provision using .secrets/ directory (not .secrets.yaml)
 	secretsDir := filepath.Join(dir, ".secrets")
-	os.MkdirAll(secretsDir, 0o755)
-	os.WriteFile(filepath.Join(secretsDir, "github"), []byte(`{"token":"ghp_test"}`), 0o644)
+	_ = os.MkdirAll(secretsDir, 0o755)
+	_ = os.WriteFile(filepath.Join(secretsDir, "github"), []byte(`{"token":"ghp_test"}`), 0o644)
 
 	provisioned, source := readProvisionedSecrets(dir)
 	if source != ".secrets/" {
@@ -309,11 +309,11 @@ func TestSecretsCheckWithSecretsDir(t *testing.T) {
 
 func TestResolveSharedSecretsPathTraversal(t *testing.T) {
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
-	os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
 
 	wfDir := filepath.Join(repoRoot, "workflows", "test")
-	os.MkdirAll(wfDir, 0o755)
+	_ = os.MkdirAll(wfDir, 0o755)
 
 	// Attempt path traversal via $shared name
 	secrets := map[string]interface{}{
@@ -332,11 +332,11 @@ func TestResolveSharedSecretsPathTraversal(t *testing.T) {
 func TestResolveSharedSecretsNonSharedSkipped(t *testing.T) {
 	// Non-$shared values should not be modified
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
-	os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
 
 	wfDir := filepath.Join(repoRoot, "workflows", "test")
-	os.MkdirAll(wfDir, 0o755)
+	_ = os.MkdirAll(wfDir, 0o755)
 
 	secrets := map[string]interface{}{
 		"plain":  "just-a-string",
@@ -462,10 +462,10 @@ nodes:
 func TestScanRequiredSecretsMergesNodeAndContractSecrets(t *testing.T) {
 	dir := t.TempDir()
 	nodesDir := filepath.Join(dir, "nodes")
-	os.MkdirAll(nodesDir, 0o755)
+	_ = os.MkdirAll(nodesDir, 0o755)
 
 	// Node uses ctx.secrets directly (legacy pattern)
-	os.WriteFile(filepath.Join(nodesDir, "fetch.ts"), []byte(
+	_ = os.WriteFile(filepath.Join(nodesDir, "fetch.ts"), []byte(
 		`const webhook = ctx.secrets?.slack?.url;`,
 	), 0o644)
 
@@ -488,7 +488,7 @@ contract:
         type: bearer-token
         secret: github.token
 `
-	os.WriteFile(filepath.Join(dir, "workflow.yaml"), []byte(yamlContent), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, "workflow.yaml"), []byte(yamlContent), 0o644)
 
 	required, err := scanRequiredSecrets(dir)
 	if err != nil {

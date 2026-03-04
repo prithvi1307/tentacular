@@ -15,14 +15,14 @@ func TestLoadConfigMissing(t *testing.T) {
 	// Use a temp dir as HOME so no user config is found
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	// Also ensure no project config exists by using a clean working directory
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	cfg := LoadConfig()
 	if cfg.Registry != "" {
@@ -39,18 +39,18 @@ func TestLoadConfigMissing(t *testing.T) {
 func TestLoadConfigUserLevel(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	// Create user-level config
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("registry: user-registry\nnamespace: user-ns\n"), 0o644)
+	_ = os.MkdirAll(userDir, 0o755)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("registry: user-registry\nnamespace: user-ns\n"), 0o644)
 
 	cfg := LoadConfig()
 	if cfg.Registry != "user-registry" {
@@ -64,23 +64,23 @@ func TestLoadConfigUserLevel(t *testing.T) {
 func TestLoadConfigProjectOverridesUser(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	// Create user-level config
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("registry: user-registry\nnamespace: user-ns\nruntime_class: user-rc\n"), 0o644)
+	_ = os.MkdirAll(userDir, 0o755)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("registry: user-registry\nnamespace: user-ns\nruntime_class: user-rc\n"), 0o644)
 
 	// Create project-level config (overrides registry only)
 	projDir := filepath.Join(tmpDir, ".tentacular")
-	os.MkdirAll(projDir, 0o755)
-	os.WriteFile(filepath.Join(projDir, "config.yaml"), []byte("registry: project-registry\n"), 0o644)
+	_ = os.MkdirAll(projDir, 0o755)
+	_ = os.WriteFile(filepath.Join(projDir, "config.yaml"), []byte("registry: project-registry\n"), 0o644)
 
 	cfg := LoadConfig()
 	if cfg.Registry != "project-registry" {
@@ -120,8 +120,8 @@ func TestMergeConfigPartial(t *testing.T) {
 func TestRunConfigureWritesUserConfig(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	cmd := NewConfigureCmd()
 	cmd.SetArgs([]string{"--registry", "my-registry.io"})
@@ -147,8 +147,8 @@ func TestRunConfigureWritesUserConfig(t *testing.T) {
 func TestRunConfigureWritesProjectConfig(t *testing.T) {
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	cmd := NewConfigureCmd()
 	cmd.SetArgs([]string{"--namespace", "staging", "--project"})
@@ -174,8 +174,8 @@ func TestRunConfigureWritesProjectConfig(t *testing.T) {
 func TestRunConfigurePreservesExistingFields(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	// First: set registry
 	cmd1 := NewConfigureCmd()
@@ -212,8 +212,8 @@ func TestRunConfigurePreservesExistingFields(t *testing.T) {
 func TestRunConfigureCreatesDirectory(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	// ~/.tentacular/ should not exist yet
 	tentacularDir := filepath.Join(tmpHome, ".tentacular")
@@ -279,8 +279,8 @@ func TestConfigureViaCobraDispatch(t *testing.T) {
 	// Set up isolated HOME
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	// Dispatch "configure --registry test.io" through root command
 	root.SetArgs([]string{"configure", "--registry", "test.io"})

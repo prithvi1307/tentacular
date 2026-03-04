@@ -139,10 +139,10 @@ Deno.test("dependency().fetch() builds correct URL without auth headers", async 
   let capturedHeaders: Headers | undefined;
   let capturedUrl: string | undefined;
 
-  globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
+  globalThis.fetch = (input: string | URL | Request, init?: RequestInit) => {
     capturedUrl = typeof input === "string" ? input : input.toString();
     capturedHeaders = new Headers(init?.headers);
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
   };
 
   try {

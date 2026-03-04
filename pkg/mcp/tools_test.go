@@ -30,7 +30,7 @@ type testServerHandle struct {
 }
 
 func (h *testServerHandle) Close() {
-	h.client.Close()
+	_ = h.client.Close()
 	h.srv.Close()
 }
 
@@ -416,7 +416,7 @@ func TestClusterProfile_Success(t *testing.T) {
 		},
 	})
 	defer srv.Close()
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	result, err := client.ClusterProfile(context.Background(), "")
 	if err != nil {
@@ -442,7 +442,7 @@ func TestClusterProfile_WithNamespace(t *testing.T) {
 		},
 	})
 	defer srv.Close()
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	_, err := client.ClusterProfile(context.Background(), "my-namespace")
 	if err != nil {
@@ -464,7 +464,7 @@ func TestClusterProfile_NoNamespaceOmitsParam(t *testing.T) {
 		},
 	})
 	defer srv.Close()
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	_, err := client.ClusterProfile(context.Background(), "")
 	if err != nil {
@@ -484,7 +484,7 @@ func TestClusterProfile_ToolError(t *testing.T) {
 		},
 	})
 	defer srv.Close()
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	_, err := client.ClusterProfile(context.Background(), "")
 	if err == nil {

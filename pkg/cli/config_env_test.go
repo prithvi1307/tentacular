@@ -14,17 +14,17 @@ import (
 func TestLoadConfigWithEnvironments(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	// Create user-level config with environments
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `registry: default-registry
 namespace: default-ns
 environments:
@@ -47,7 +47,7 @@ environments:
     context: prod-cluster
     secrets_source: vault://prod/tentacular
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	cfg := LoadConfig()
 
@@ -93,16 +93,16 @@ environments:
 func TestLoadEnvironmentFound(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `registry: base-reg
 environments:
   staging:
@@ -111,7 +111,7 @@ environments:
     config_overrides:
       pg_host: staging-db
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	env, err := LoadEnvironment("staging")
 	if err != nil {
@@ -131,22 +131,22 @@ environments:
 func TestLoadEnvironmentNotFound(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `registry: base-reg
 environments:
   dev:
     namespace: dev-ns
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	_, err := LoadEnvironment("production")
 	if err == nil {
@@ -160,17 +160,17 @@ environments:
 func TestLoadEnvironmentNoEnvironmentsDefined(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("registry: base-reg\n"), 0o644)
+	_ = os.MkdirAll(userDir, 0o755)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("registry: base-reg\n"), 0o644)
 
 	_, err := LoadEnvironment("dev")
 	if err == nil {
@@ -181,33 +181,33 @@ func TestLoadEnvironmentNoEnvironmentsDefined(t *testing.T) {
 func TestProjectEnvOverridesUserEnv(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	// User-level config has dev environment
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	userYAML := `environments:
   dev:
     namespace: user-dev-ns
     context: user-dev-ctx
     runtime_class: user-rc
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(userYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(userYAML), 0o644)
 
 	// Project-level config overrides dev namespace only
 	projDir := filepath.Join(tmpDir, ".tentacular")
-	os.MkdirAll(projDir, 0o755)
+	_ = os.MkdirAll(projDir, 0o755)
 	projYAML := `environments:
   dev:
     namespace: project-dev-ns
 `
-	os.WriteFile(filepath.Join(projDir, "config.yaml"), []byte(projYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(projDir, "config.yaml"), []byte(projYAML), 0o644)
 
 	env, err := LoadEnvironment("dev")
 	if err != nil {
@@ -296,16 +296,16 @@ func TestEnvWithEmptyFieldsDoesNotOverrideTopLevel(t *testing.T) {
 	// The EnvironmentConfig is a separate struct, so top-level should remain intact.
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `registry: top-registry
 namespace: top-ns
 runtime_class: top-rc
@@ -313,7 +313,7 @@ environments:
   minimal:
     namespace: minimal-ns
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	cfg := LoadConfig()
 
@@ -349,22 +349,22 @@ func TestResolveEnvironmentEquivalentToLoadEnvironment(t *testing.T) {
 	// ResolveEnvironment and LoadEnvironment should produce the same result
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `environments:
   dev:
     namespace: dev-ns
     context: dev-ctx
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	env1, err1 := LoadEnvironment("dev")
 	env2, err2 := ResolveEnvironment("dev")
@@ -432,16 +432,16 @@ func TestEnvironmentConfigOverridesFieldTypes(t *testing.T) {
 	// Verify ConfigOverrides can hold various types
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `environments:
   dev:
     namespace: dev-ns
@@ -451,7 +451,7 @@ func TestEnvironmentConfigOverridesFieldTypes(t *testing.T) {
       bool_val: true
       float_val: 3.14
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	env, err := LoadEnvironment("dev")
 	if err != nil {
@@ -474,28 +474,28 @@ func TestEnvironmentConfigOverridesFieldTypes(t *testing.T) {
 func TestResolveEnvironmentEmptyReturnsTopLevel(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	// Clear TENTACULAR_ENV to ensure we test the empty-name path
 	origEnv := os.Getenv("TENTACULAR_ENV")
-	os.Unsetenv("TENTACULAR_ENV")
-	defer os.Setenv("TENTACULAR_ENV", origEnv)
+	_ = os.Unsetenv("TENTACULAR_ENV")
+	defer func() { _ = os.Setenv("TENTACULAR_ENV", origEnv) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `namespace: top-ns
 runtime_class: top-rc
 environments:
   dev:
     namespace: dev-ns
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	// ResolveEnvironment("") should return top-level config promoted
 	env, err := ResolveEnvironment("")
@@ -517,28 +517,28 @@ environments:
 func TestResolveEnvironmentTENTACULAR_ENVFallback(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `namespace: top-ns
 environments:
   staging:
     namespace: staging-ns
     context: staging-ctx
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	// Set TENTACULAR_ENV and call ResolveEnvironment with empty name
 	origEnv := os.Getenv("TENTACULAR_ENV")
-	os.Setenv("TENTACULAR_ENV", "staging")
-	defer os.Setenv("TENTACULAR_ENV", origEnv)
+	_ = os.Setenv("TENTACULAR_ENV", "staging")
+	defer func() { _ = os.Setenv("TENTACULAR_ENV", origEnv) }()
 
 	env, err := ResolveEnvironment("")
 	if err != nil {
@@ -555,28 +555,28 @@ environments:
 func TestResolveEnvironmentExplicitOverridesTENTACULAR_ENV(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `environments:
   dev:
     namespace: dev-ns
   staging:
     namespace: staging-ns
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	// Set TENTACULAR_ENV to staging, but explicitly ask for dev
 	origEnv := os.Getenv("TENTACULAR_ENV")
-	os.Setenv("TENTACULAR_ENV", "staging")
-	defer os.Setenv("TENTACULAR_ENV", origEnv)
+	_ = os.Setenv("TENTACULAR_ENV", "staging")
+	defer func() { _ = os.Setenv("TENTACULAR_ENV", origEnv) }()
 
 	env, err := ResolveEnvironment("dev")
 	if err != nil {
@@ -612,22 +612,22 @@ func TestLoadEnvironmentEmptyNameReturnsTopLevel(t *testing.T) {
 func TestEnvironmentSecretsSource(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `environments:
   prod:
     namespace: prod-ns
     secrets_source: vault://prod/tentacular
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	env, err := LoadEnvironment("prod")
 	if err != nil {
@@ -643,16 +643,16 @@ func TestEnvironmentSecretsSource(t *testing.T) {
 func TestEnvironmentEnforcementModes(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `environments:
   dev:
     namespace: dev-ns
@@ -664,7 +664,7 @@ func TestEnvironmentEnforcementModes(t *testing.T) {
     namespace: prod-ns
     # No enforcement specified (defaults to strict)
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	// Dev should have audit mode
 	devEnv, err := LoadEnvironment("dev")
@@ -697,22 +697,22 @@ func TestEnvironmentEnforcementModes(t *testing.T) {
 func TestEnvironmentEnforcementRoundTrip(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `environments:
   test:
     namespace: test-ns
     enforcement: audit
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	cfg := LoadConfig()
 	if cfg.Environments == nil {
@@ -730,16 +730,16 @@ func TestEnvironmentEnforcementRoundTrip(t *testing.T) {
 func TestEnvironmentKubeconfigField(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `environments:
   dev:
     kubeconfig: ~/dev-secrets/nats-admin.kubeconfig
@@ -752,7 +752,7 @@ func TestEnvironmentKubeconfigField(t *testing.T) {
     context: legacy-ctx
     namespace: legacy-ns
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	// Dev: kubeconfig with ~ should be expanded to home dir
 	devEnv, err := LoadEnvironment("dev")
@@ -796,21 +796,21 @@ func TestEnvironmentEnforcementOmittedWhenEmpty(t *testing.T) {
 	// When enforcement is empty, it should be omitted from YAML output (omitempty tag)
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
 	tmpDir := t.TempDir()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
+	_ = os.MkdirAll(userDir, 0o755)
 	configYAML := `environments:
   minimal:
     namespace: minimal-ns
 `
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	env, err := LoadEnvironment("minimal")
 	if err != nil {

@@ -162,32 +162,6 @@ func isRWXCapable(provisioner string) bool {
 	return false
 }
 
-func detectIngress(pods *corev1.PodList) []string {
-	seen := map[string]bool{}
-	for _, pod := range pods.Items {
-		labels := pod.Labels
-		name := pod.Name
-		appName := labels["app.kubernetes.io/name"]
-		app := labels["app"]
-		switch {
-		case appName == "ingress-nginx" || strings.Contains(name, "ingress-nginx"):
-			seen["nginx"] = true
-		case appName == "traefik" || app == "traefik":
-			seen["traefik"] = true
-		case app == "istio-ingressgateway" || strings.Contains(name, "istio-ingressgateway"):
-			seen["istio"] = true
-		case appName == "contour" || app == "contour":
-			seen["contour"] = true
-		}
-	}
-	var result []string
-	for k := range seen {
-		result = append(result, k)
-	}
-	sort.Strings(result)
-	return result
-}
-
 func classifyExtensions(crdList *unstructured.UnstructuredList) ExtensionSet {
 	ext := ExtensionSet{}
 	knownGroups := map[string]bool{}
@@ -231,53 +205,6 @@ func classifyExtensions(crdList *unstructured.UnstructuredList) ExtensionSet {
 		)
 	}
 	return ext
-}
-
-func summariseQuotas(quotas []corev1.ResourceQuota) *QuotaSummary {
-	qs := &QuotaSummary{}
-	for _, q := range quotas {
-		hard := q.Spec.Hard
-		if v, ok := hard[corev1.ResourceRequestsCPU]; ok {
-			qs.CPURequest = v.String()
-		}
-		if v, ok := hard[corev1.ResourceLimitsCPU]; ok {
-			qs.CPULimit = v.String()
-		}
-		if v, ok := hard[corev1.ResourceRequestsMemory]; ok {
-			qs.MemoryRequest = v.String()
-		}
-		if v, ok := hard[corev1.ResourceLimitsMemory]; ok {
-			qs.MemoryLimit = v.String()
-		}
-		if v, ok := hard[corev1.ResourcePods]; ok {
-			pods, _ := v.AsInt64()
-			qs.MaxPods = int(pods)
-		}
-	}
-	return qs
-}
-
-func summariseLimitRanges(lrs []corev1.LimitRange) *LimitRangeSummary {
-	lr := &LimitRangeSummary{}
-	for _, r := range lrs {
-		for _, item := range r.Spec.Limits {
-			if item.Type == corev1.LimitTypeContainer {
-				if v, ok := item.Default[corev1.ResourceCPU]; ok {
-					lr.DefaultCPULimit = v.String()
-				}
-				if v, ok := item.DefaultRequest[corev1.ResourceCPU]; ok {
-					lr.DefaultCPURequest = v.String()
-				}
-				if v, ok := item.Default[corev1.ResourceMemory]; ok {
-					lr.DefaultMemoryLimit = v.String()
-				}
-				if v, ok := item.DefaultRequest[corev1.ResourceMemory]; ok {
-					lr.DefaultMemoryRequest = v.String()
-				}
-			}
-		}
-	}
-	return lr
 }
 
 func detectPodSecurity(ns *corev1.Namespace) string {

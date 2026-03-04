@@ -83,7 +83,7 @@ async function main() {
 
   // Create node runner
   const runner: NodeRunner = {
-    async run(nodeId: string, _ctx: Context, input: unknown): Promise<unknown> {
+    run(nodeId: string, _ctx: Context, input: unknown): Promise<unknown> {
       const fn = nodeRef.current.get(nodeId);
       if (!fn) throw new Error(`Node "${nodeId}" not loaded`);
 

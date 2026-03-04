@@ -44,7 +44,7 @@ func runConfigure(cmd *cobra.Command, args []string) error {
 	// Load existing config
 	cfg := TentacularConfig{}
 	if data, err := os.ReadFile(configPath); err == nil {
-		yaml.Unmarshal(data, &cfg)
+		_ = yaml.Unmarshal(data, &cfg)
 	}
 
 	// Apply flag overrides

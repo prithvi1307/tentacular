@@ -30,13 +30,13 @@ func TestLoadConfigFromCluster_EnvVarsOnly(t *testing.T) {
 
 func TestLoadConfigFromCluster_NoConfig_ReturnsNil(t *testing.T) {
 	// Unset all env vars and use a home dir with no config
-	os.Unsetenv(envEndpoint)
-	os.Unsetenv(envToken)
+	_ = os.Unsetenv(envEndpoint)
+	_ = os.Unsetenv(envToken)
 
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	cfg, err := LoadConfigFromCluster(context.Background())
 	if err != nil {
@@ -48,26 +48,26 @@ func TestLoadConfigFromCluster_NoConfig_ReturnsNil(t *testing.T) {
 }
 
 func TestLoadConfigFromCluster_UserConfigFile(t *testing.T) {
-	os.Unsetenv(envEndpoint)
-	os.Unsetenv(envToken)
+	_ = os.Unsetenv(envEndpoint)
+	_ = os.Unsetenv(envToken)
 
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	configDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(configDir, 0o755)
+	_ = os.MkdirAll(configDir, 0o755)
 	configContent := "mcp:\n  endpoint: http://from-user-config:8080\n  token_path: /some/token\n"
-	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(configContent), 0o644)
+	_ = os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(configContent), 0o644)
 
 	// Write a token file to satisfy token_path
 	tokenFile := filepath.Join(tmpHome, "mcp-token")
-	os.WriteFile(tokenFile, []byte("file-token\n"), 0o600)
+	_ = os.WriteFile(tokenFile, []byte("file-token\n"), 0o600)
 
 	// Override token_path in config to point to our test file
 	configContent2 := "mcp:\n  endpoint: http://from-user-config:8080\n  token_path: " + tokenFile + "\n"
-	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(configContent2), 0o644)
+	_ = os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(configContent2), 0o644)
 
 	cfg, err := LoadConfigFromCluster(context.Background())
 	if err != nil {
@@ -88,11 +88,11 @@ func TestLoadConfigFromCluster_EnvOverridesFile(t *testing.T) {
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	configDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(configDir, 0o755)
-	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("mcp:\n  endpoint: http://from-file:8080\n"), 0o644)
+	_ = os.MkdirAll(configDir, 0o755)
+	_ = os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("mcp:\n  endpoint: http://from-file:8080\n"), 0o644)
 
 	t.Setenv(envEndpoint, "http://from-env:9090")
 	t.Setenv(envToken, "env-token")
@@ -113,17 +113,17 @@ func TestLoadConfigFromCluster_EnvOverridesFile(t *testing.T) {
 }
 
 func TestLoadConfigFromCluster_TokenFileNotFound(t *testing.T) {
-	os.Unsetenv(envEndpoint)
-	os.Unsetenv(envToken)
+	_ = os.Unsetenv(envEndpoint)
+	_ = os.Unsetenv(envToken)
 
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	configDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(configDir, 0o755)
-	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("mcp:\n  endpoint: http://mcp:8080\n  token_path: /nonexistent/token\n"), 0o644)
+	_ = os.MkdirAll(configDir, 0o755)
+	_ = os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("mcp:\n  endpoint: http://mcp:8080\n  token_path: /nonexistent/token\n"), 0o644)
 
 	_, err := LoadConfigFromCluster(context.Background())
 	if err == nil {
@@ -162,7 +162,7 @@ func TestLoadMCPFromFile_MissingFile(t *testing.T) {
 func TestLoadMCPFromFile_ValidFile(t *testing.T) {
 	tmp := t.TempDir()
 	p := filepath.Join(tmp, "config.yaml")
-	os.WriteFile(p, []byte("mcp:\n  endpoint: http://test:8080\n  token_path: /var/token\n"), 0o644)
+	_ = os.WriteFile(p, []byte("mcp:\n  endpoint: http://test:8080\n  token_path: /var/token\n"), 0o644)
 
 	cfg := &Config{}
 	loadMCPFromFile(p, cfg)
@@ -178,7 +178,7 @@ func TestLoadMCPFromFile_ValidFile(t *testing.T) {
 func TestLoadMCPFromFile_MalformedYAML(t *testing.T) {
 	tmp := t.TempDir()
 	p := filepath.Join(tmp, "config.yaml")
-	os.WriteFile(p, []byte(":::not valid yaml[[["), 0o644)
+	_ = os.WriteFile(p, []byte(":::not valid yaml[[["), 0o644)
 
 	cfg := &Config{Endpoint: "existing"}
 	loadMCPFromFile(p, cfg) // should silently ignore
@@ -190,7 +190,7 @@ func TestLoadMCPFromFile_MalformedYAML(t *testing.T) {
 func TestLoadMCPFromFile_NoMCPSection(t *testing.T) {
 	tmp := t.TempDir()
 	p := filepath.Join(tmp, "config.yaml")
-	os.WriteFile(p, []byte("registry: my-registry\nnamespace: dev\n"), 0o644)
+	_ = os.WriteFile(p, []byte("registry: my-registry\nnamespace: dev\n"), 0o644)
 
 	cfg := &Config{}
 	loadMCPFromFile(p, cfg)
@@ -204,7 +204,7 @@ func TestLoadMCPFromFile_NoMCPSection(t *testing.T) {
 func TestReadTokenFile_Success(t *testing.T) {
 	tmp := t.TempDir()
 	p := filepath.Join(tmp, "token")
-	os.WriteFile(p, []byte("  my-bearer-token\n  "), 0o600)
+	_ = os.WriteFile(p, []byte("  my-bearer-token\n  "), 0o600)
 
 	tok, err := readTokenFile(p)
 	if err != nil {
@@ -225,7 +225,7 @@ func TestReadTokenFile_NotFound(t *testing.T) {
 func TestReadTokenFile_Empty(t *testing.T) {
 	tmp := t.TempDir()
 	p := filepath.Join(tmp, "empty-token")
-	os.WriteFile(p, []byte("\n\n"), 0o600)
+	_ = os.WriteFile(p, []byte("\n\n"), 0o600)
 
 	tok, err := readTokenFile(p)
 	if err != nil {
@@ -242,7 +242,7 @@ func TestSaveConfig_WritesNewFile(t *testing.T) {
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	err := SaveConfig("http://mcp:8080", "/var/run/token")
 	if err != nil {
@@ -268,12 +268,12 @@ func TestSaveConfig_MergesWithExistingConfig(t *testing.T) {
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	configDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(configDir, 0o755)
+	_ = os.MkdirAll(configDir, 0o755)
 	// Pre-existing config with a different key
-	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("registry: my-registry\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("registry: my-registry\n"), 0o644)
 
 	err := SaveConfig("http://mcp:8080", "/var/token")
 	if err != nil {
@@ -298,7 +298,7 @@ func TestSaveConfig_FilePermissions(t *testing.T) {
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
 	t.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	err := SaveConfig("http://mcp:8080", "")
 	if err != nil {

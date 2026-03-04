@@ -114,7 +114,7 @@ func SaveConfig(endpoint, tokenPath string) error {
 	// Load existing config to merge
 	var raw map[string]interface{}
 	if data, err := os.ReadFile(cfgPath); err == nil {
-		yaml.Unmarshal(data, &raw)
+		_ = yaml.Unmarshal(data, &raw)
 	}
 	if raw == nil {
 		raw = make(map[string]interface{})

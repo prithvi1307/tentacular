@@ -98,7 +98,7 @@ func TestNewTestCmdFlagParsing(t *testing.T) {
 func TestEmitLiveResultPass(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
 	cmd.PersistentFlags().StringP("output", "o", "json", "Output format")
-	cmd.ParseFlags([]string{"-o", "json"})
+	_ = cmd.ParseFlags([]string{"-o", "json"})
 
 	startedAt := time.Now().UTC().Add(-500 * time.Millisecond)
 
@@ -120,7 +120,7 @@ func TestEmitLiveResultPass(t *testing.T) {
 	}
 
 	var parsed map[string]interface{}
-	if err := json.Unmarshal([]byte(buf.String()), &parsed); err != nil {
+	if err := json.Unmarshal(buf.Bytes(), &parsed); err != nil {
 		t.Fatalf("invalid JSON: %v\nOutput: %s", err, buf.String())
 	}
 	if parsed["status"] != "pass" {
@@ -137,7 +137,7 @@ func TestEmitLiveResultPass(t *testing.T) {
 func TestEmitLiveResultFailIncludesHints(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
 	cmd.PersistentFlags().StringP("output", "o", "json", "Output format")
-	cmd.ParseFlags([]string{"-o", "json"})
+	_ = cmd.ParseFlags([]string{"-o", "json"})
 
 	result := CommandResult{
 		Version: "1",
@@ -157,7 +157,7 @@ func TestEmitLiveResultFailIncludesHints(t *testing.T) {
 	}
 
 	var parsed map[string]interface{}
-	if err := json.Unmarshal([]byte(buf.String()), &parsed); err != nil {
+	if err := json.Unmarshal(buf.Bytes(), &parsed); err != nil {
 		t.Fatalf("invalid JSON: %v", err)
 	}
 	if parsed["status"] != "fail" {
@@ -226,8 +226,8 @@ func TestImageResolutionCascade(t *testing.T) {
 	t.Run("base-image.txt used when env image empty", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		tentacularDir := filepath.Join(tmpDir, ".tentacular")
-		os.MkdirAll(tentacularDir, 0o755)
-		os.WriteFile(filepath.Join(tentacularDir, "base-image.txt"), []byte("my-registry/tentacular-engine:abc123\n"), 0o644)
+		_ = os.MkdirAll(tentacularDir, 0o755)
+		_ = os.WriteFile(filepath.Join(tentacularDir, "base-image.txt"), []byte("my-registry/tentacular-engine:abc123\n"), 0o644)
 
 		env := &EnvironmentConfig{}
 		imageTag := env.Image
@@ -274,8 +274,8 @@ func TestLiveTestRequiresWorkflowYAML(t *testing.T) {
 	defer os.Setenv("HOME", origHome)
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("environments:\n  dev:\n    namespace: dev-ns\n"), 0o644)
+	_ = os.MkdirAll(userDir, 0o755)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("environments:\n  dev:\n    namespace: dev-ns\n"), 0o644)
 
 	cmd.SetArgs([]string{"--live", tmpDir})
 	err := cmd.Execute()
@@ -290,21 +290,21 @@ func TestLiveTestRequiresWorkflowYAML(t *testing.T) {
 func TestLiveTestRequiresEnvironment(t *testing.T) {
 	// When --env points to a non-existent environment, should fail
 	tmpDir := t.TempDir()
-	os.WriteFile(filepath.Join(tmpDir, "workflow.yaml"), []byte("name: test-wf\nversion: \"1.0\"\nnodes:\n  a:\n    path: ./a.ts\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(tmpDir, "workflow.yaml"), []byte("name: test-wf\nversion: \"1.0\"\nnodes:\n  a:\n    path: ./a.ts\n"), 0o644)
 
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	origDir, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origDir) }()
 
 	// Empty config -- no environments
 	userDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(userDir, 0o755)
-	os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("registry: test\n"), 0o644)
+	_ = os.MkdirAll(userDir, 0o755)
+	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte("registry: test\n"), 0o644)
 
 	root := &cobra.Command{Use: "tntc"}
 	root.PersistentFlags().StringP("env", "e", "", "Target environment")

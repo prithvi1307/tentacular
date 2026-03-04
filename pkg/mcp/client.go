@@ -149,7 +149,7 @@ func (c *Client) Ping(ctx context.Context) error {
 	if err != nil {
 		return &ServerUnavailableError{Endpoint: c.baseURL, Cause: err}
 	}
-	defer httpResp.Body.Close()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	if httpResp.StatusCode != http.StatusOK {
 		return &ServerUnavailableError{

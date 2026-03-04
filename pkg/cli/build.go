@@ -87,14 +87,14 @@ func runBuild(cmd *cobra.Command, args []string) error {
 	if err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0o644); err != nil {
 		return fmt.Errorf("writing Dockerfile: %w", err)
 	}
-	defer os.Remove(dockerfilePath)
+	defer func() { _ = os.Remove(dockerfilePath) }()
 
 	// Copy engine into build context
 	engineDest := filepath.Join(absDir, ".engine")
 	if err := copyDir(engineDir, engineDest); err != nil {
 		return fmt.Errorf("copying engine: %w", err)
 	}
-	defer os.RemoveAll(engineDest)
+	defer func() { _ = os.RemoveAll(engineDest) }()
 
 	fmt.Printf("Building image %s...\n", tag)
 

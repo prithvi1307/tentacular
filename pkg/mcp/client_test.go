@@ -58,7 +58,7 @@ func makeTestServer(t *testing.T, tools map[string]func(args map[string]any) (st
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
 	srv := httptest.NewServer(mux)
@@ -78,7 +78,7 @@ func TestCallTool_Success(t *testing.T) {
 		},
 	})
 	defer srv.Close()
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	raw, err := client.CallTool(context.Background(), "test_tool", map[string]string{"key": "val"})
 	if err != nil {
@@ -100,7 +100,7 @@ func TestCallTool_ToolError(t *testing.T) {
 		},
 	})
 	defer srv.Close()
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	_, err := client.CallTool(context.Background(), "wf_status", nil)
 	if !IsToolError(err) {
@@ -140,7 +140,7 @@ func TestCallTool_BearerToken(t *testing.T) {
 		Timeout:  2 * time.Second,
 	})
 	// This will fail because the server doesn't speak MCP, but the header is captured
-	client.CallTool(context.Background(), "test_tool", nil)
+	_, _ = client.CallTool(context.Background(), "test_tool", nil)
 
 	if receivedAuth != "Bearer test-token" {
 		t.Errorf("expected Bearer test-token, got %q", receivedAuth)
@@ -150,7 +150,7 @@ func TestCallTool_BearerToken(t *testing.T) {
 func TestPing_Success(t *testing.T) {
 	srv, client := makeTestServer(t, nil)
 	defer srv.Close()
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	if err := client.Ping(context.Background()); err != nil {
 		t.Errorf("unexpected ping error: %v", err)
@@ -201,7 +201,7 @@ func TestCallTool_MultipleCalls(t *testing.T) {
 		},
 	})
 	defer srv.Close()
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	for i := 0; i < 3; i++ {
 		_, err := client.CallTool(context.Background(), "counter", nil)
@@ -226,7 +226,7 @@ func TestCallTool_ArgsPassthrough(t *testing.T) {
 		},
 	})
 	defer srv.Close()
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	_, err := client.CallTool(context.Background(), "wf_list", map[string]any{"namespace": "my-ns"})
 	if err != nil {

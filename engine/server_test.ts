@@ -18,8 +18,8 @@ function makeSpec(): WorkflowSpec {
 
 function makeRunner(): NodeRunner {
   return {
-    async run(): Promise<unknown> {
-      return { ok: true };
+    run(): Promise<unknown> {
+      return Promise.resolve({ ok: true });
     },
   };
 }

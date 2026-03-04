@@ -1,4 +1,4 @@
-import type { CompiledDAG, Context, ExecutionResult } from "./types.ts";
+import type { CompiledDAG, Context } from "./types.ts";
 import type { NodeRunner } from "./executor/types.ts";
 import { SimpleExecutor } from "./executor/simple.ts";
 import { handleGitHubWebhook, validateOptions as validateWebhookOptions } from "./triggers/webhook.ts";

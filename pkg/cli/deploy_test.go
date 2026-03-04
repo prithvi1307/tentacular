@@ -16,18 +16,18 @@ import (
 func TestBuildSecretManifestLocalSecretsPresent(t *testing.T) {
 	// Create a fake repo root with shared secrets
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 	sharedDir := filepath.Join(repoRoot, ".secrets")
-	os.MkdirAll(sharedDir, 0o755)
-	os.WriteFile(filepath.Join(sharedDir, "github_token"), []byte(`{"token":"ghp_test123"}`), 0o644)
-	os.WriteFile(filepath.Join(sharedDir, "slack"), []byte(`{"webhook_url":"https://hooks.slack.com/test"}`), 0o644)
+	_ = os.MkdirAll(sharedDir, 0o755)
+	_ = os.WriteFile(filepath.Join(sharedDir, "github_token"), []byte(`{"token":"ghp_test123"}`), 0o644)
+	_ = os.WriteFile(filepath.Join(sharedDir, "slack"), []byte(`{"webhook_url":"https://hooks.slack.com/test"}`), 0o644)
 
 	wfDir := filepath.Join(repoRoot, "workflows", "test-wf")
-	os.MkdirAll(wfDir, 0o755)
+	_ = os.MkdirAll(wfDir, 0o755)
 
 	// Create .secrets.yaml with $shared references
 	yamlContent := "github_token: $shared.github_token\nslack: $shared.slack\n"
-	os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(yamlContent), 0o644)
+	_ = os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(yamlContent), 0o644)
 
 	m, err := buildSecretManifest(wfDir, "test-wf", "staging")
 	if err != nil {
@@ -57,7 +57,7 @@ func TestBuildSecretManifestMalformedYAML(t *testing.T) {
 	dir := t.TempDir()
 
 	// Write malformed YAML
-	os.WriteFile(filepath.Join(dir, ".secrets.yaml"), []byte(":::invalid yaml[[["), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, ".secrets.yaml"), []byte(":::invalid yaml[[["), 0o644)
 
 	_, err := buildSecretManifest(dir, "test-wf", "default")
 	if err == nil {
@@ -85,21 +85,21 @@ func TestBuildSecretManifestDirIgnoredOnlyYAMLUsed(t *testing.T) {
 	// Per-workflow .secrets/ dirs are no longer supported.
 	// Only .secrets.yaml with $shared references works.
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 	sharedDir := filepath.Join(repoRoot, ".secrets")
-	os.MkdirAll(sharedDir, 0o755)
-	os.WriteFile(filepath.Join(sharedDir, "from_yaml"), []byte(`{"value":"yaml-resolved"}`), 0o644)
+	_ = os.MkdirAll(sharedDir, 0o755)
+	_ = os.WriteFile(filepath.Join(sharedDir, "from_yaml"), []byte(`{"value":"yaml-resolved"}`), 0o644)
 
 	wfDir := filepath.Join(repoRoot, "workflows", "test-wf")
-	os.MkdirAll(wfDir, 0o755)
+	_ = os.MkdirAll(wfDir, 0o755)
 
 	// Create per-workflow .secrets/ dir (old pattern — should be ignored)
 	localSecretsDir := filepath.Join(wfDir, ".secrets")
-	os.MkdirAll(localSecretsDir, 0o755)
-	os.WriteFile(filepath.Join(localSecretsDir, "from-dir"), []byte("dir-value"), 0o644)
+	_ = os.MkdirAll(localSecretsDir, 0o755)
+	_ = os.WriteFile(filepath.Join(localSecretsDir, "from-dir"), []byte("dir-value"), 0o644)
 
 	// Create .secrets.yaml with $shared ref
-	os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte("from_yaml: $shared.from_yaml\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte("from_yaml: $shared.from_yaml\n"), 0o644)
 
 	m, err := buildSecretManifest(wfDir, "test-wf", "default")
 	if err != nil {
@@ -119,14 +119,14 @@ func TestBuildSecretManifestDirIgnoredOnlyYAMLUsed(t *testing.T) {
 
 func TestBuildSecretManifestNameSuffix(t *testing.T) {
 	repoRoot := t.TempDir()
-	os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
+	_ = os.MkdirAll(filepath.Join(repoRoot, ".git"), 0o755)
 	sharedDir := filepath.Join(repoRoot, ".secrets")
-	os.MkdirAll(sharedDir, 0o755)
-	os.WriteFile(filepath.Join(sharedDir, "token"), []byte(`{"value":"abc"}`), 0o644)
+	_ = os.MkdirAll(sharedDir, 0o755)
+	_ = os.WriteFile(filepath.Join(sharedDir, "token"), []byte(`{"value":"abc"}`), 0o644)
 
 	wfDir := filepath.Join(repoRoot, "workflows", "my-workflow")
-	os.MkdirAll(wfDir, 0o755)
-	os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte("token: $shared.token\n"), 0o644)
+	_ = os.MkdirAll(wfDir, 0o755)
+	_ = os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte("token: $shared.token\n"), 0o644)
 
 	m, err := buildSecretManifest(wfDir, "my-workflow", "default")
 	if err != nil {
@@ -236,7 +236,7 @@ func TestDeployCmdAllFlagsCombined(t *testing.T) {
 func TestEmitDeployResultPassStatus(t *testing.T) {
 	cmd := &cobra.Command{Use: "deploy"}
 	cmd.PersistentFlags().StringP("output", "o", "json", "Output format")
-	cmd.ParseFlags([]string{"-o", "json"})
+	_ = cmd.ParseFlags([]string{"-o", "json"})
 
 	startedAt := time.Now().UTC()
 
@@ -277,7 +277,7 @@ func TestEmitDeployResultPassStatus(t *testing.T) {
 func TestEmitDeployResultFailIncludesForceHint(t *testing.T) {
 	cmd := &cobra.Command{Use: "deploy"}
 	cmd.PersistentFlags().StringP("output", "o", "json", "Output format")
-	cmd.ParseFlags([]string{"-o", "json"})
+	_ = cmd.ParseFlags([]string{"-o", "json"})
 
 	startedAt := time.Now().UTC()
 

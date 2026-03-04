@@ -15,23 +15,23 @@ func setupEnvConfig(t *testing.T, configYAML string) func() {
 	t.Helper()
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpHome)
+	_ = os.Setenv("HOME", tmpHome)
 
 	configDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(configDir, 0o755)
-	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(configYAML), 0o644)
+	_ = os.MkdirAll(configDir, 0o755)
+	_ = os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(configYAML), 0o644)
 
 	origDir, _ := os.Getwd()
-	os.Chdir(t.TempDir())
+	_ = os.Chdir(t.TempDir())
 
 	// Clear env vars that would interfere
-	os.Unsetenv("TNTC_MCP_ENDPOINT")
-	os.Unsetenv("TNTC_MCP_TOKEN")
-	os.Unsetenv("TENTACULAR_ENV")
+	_ = os.Unsetenv("TNTC_MCP_ENDPOINT")
+	_ = os.Unsetenv("TNTC_MCP_TOKEN")
+	_ = os.Unsetenv("TENTACULAR_ENV")
 
 	return func() {
-		os.Setenv("HOME", origHome)
-		os.Chdir(origDir)
+		_ = os.Setenv("HOME", origHome)
+		_ = os.Chdir(origDir)
 	}
 }
 
@@ -68,8 +68,8 @@ func TestResolveMCPClient_EnvFlagTakesPriority(t *testing.T) {
 	defer cleanup()
 
 	// TENTACULAR_ENV=staging but --env=dev → dev should win
-	os.Setenv("TENTACULAR_ENV", "staging")
-	defer os.Unsetenv("TENTACULAR_ENV")
+	_ = os.Setenv("TENTACULAR_ENV", "staging")
+	defer func() { _ = os.Unsetenv("TENTACULAR_ENV") }()
 
 	cmd := newTestCmdWithEnv("dev")
 	client, err := resolveMCPClient(cmd)
@@ -90,8 +90,8 @@ func TestResolveMCPClient_TENTACULAR_ENVFallback(t *testing.T) {
 `)
 	defer cleanup()
 
-	os.Setenv("TENTACULAR_ENV", "prod")
-	defer os.Unsetenv("TENTACULAR_ENV")
+	_ = os.Setenv("TENTACULAR_ENV", "prod")
+	defer func() { _ = os.Unsetenv("TENTACULAR_ENV") }()
 
 	cmd := newTestCmd()
 	client, err := resolveMCPClient(cmd)
@@ -173,27 +173,27 @@ environments:
 func TestResolveMCPClient_MCPTokenPathExpandsTilde(t *testing.T) {
 	tmpHome := t.TempDir()
 	origHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", origHome)
+	_ = os.Setenv("HOME", tmpHome)
+	defer func() { _ = os.Setenv("HOME", origHome) }()
 
 	// Write a token file in tmpHome
 	tokenFile := filepath.Join(tmpHome, "mcp-token")
-	os.WriteFile(tokenFile, []byte("my-token\n"), 0o600)
+	_ = os.WriteFile(tokenFile, []byte("my-token\n"), 0o600)
 
 	configDir := filepath.Join(tmpHome, ".tentacular")
-	os.MkdirAll(configDir, 0o755)
-	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`environments:
+	_ = os.MkdirAll(configDir, 0o755)
+	_ = os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`environments:
   prod:
     mcp_endpoint: http://prod-mcp:8080
     mcp_token_path: ~/mcp-token
 `), 0o644)
 
 	origDir, _ := os.Getwd()
-	os.Chdir(t.TempDir())
-	defer os.Chdir(origDir)
-	os.Unsetenv("TNTC_MCP_ENDPOINT")
-	os.Unsetenv("TNTC_MCP_TOKEN")
-	os.Unsetenv("TENTACULAR_ENV")
+	_ = os.Chdir(t.TempDir())
+	defer func() { _ = os.Chdir(origDir) }()
+	_ = os.Unsetenv("TNTC_MCP_ENDPOINT")
+	_ = os.Unsetenv("TNTC_MCP_TOKEN")
+	_ = os.Unsetenv("TENTACULAR_ENV")
 
 	// Load the environment config and check token path expansion
 	env, err := LoadEnvironment("prod")

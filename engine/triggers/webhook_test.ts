@@ -2,7 +2,7 @@
  * Tests for the GitHub webhook trigger handler.
  */
 
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "jsr:@std/assert@1.0.11";
 import { handleGitHubWebhook } from "./webhook.ts";
 import type { WebhookTriggerOptions } from "./webhook.ts";
 import type { CompiledDAG, Context } from "../types.ts";
@@ -69,7 +69,7 @@ function makeOpts(overrides: Partial<WebhookTriggerOptions> = {}): WebhookTrigge
   };
 
   const mockCtx: Context = {
-    fetch: async () => new Response("{}"),
+    fetch: () => Promise.resolve(new Response("{}")),
     log: {
       info: () => {},
       warn: () => {},
@@ -82,7 +82,7 @@ function makeOpts(overrides: Partial<WebhookTriggerOptions> = {}): WebhookTrigge
   };
 
   const mockRunner: NodeRunner = {
-    run: async (_nodeId: string, _ctx: Context, input: unknown) => input,
+    run: (_nodeId: string, _ctx: Context, input: unknown) => Promise.resolve(input),
   };
 
   return {

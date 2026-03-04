@@ -104,7 +104,7 @@ func TestEmitResultJSONMode(t *testing.T) {
 	// Create a command with -o json flag
 	cmd := &cobra.Command{Use: "test"}
 	cmd.PersistentFlags().StringP("output", "o", "text", "Output format")
-	cmd.ParseFlags([]string{"-o", "json"})
+	_ = cmd.ParseFlags([]string{"-o", "json"})
 
 	result := CommandResult{
 		Version: "1",
@@ -144,7 +144,7 @@ func TestEmitResultTextMode(t *testing.T) {
 	// Create a command with -o text flag (default)
 	cmd := &cobra.Command{Use: "test"}
 	cmd.PersistentFlags().StringP("output", "o", "text", "Output format")
-	cmd.ParseFlags([]string{"-o", "text"})
+	_ = cmd.ParseFlags([]string{"-o", "text"})
 
 	result := CommandResult{
 		Version: "1",
@@ -199,7 +199,7 @@ func TestEmitResultDefaultIsText(t *testing.T) {
 
 	// Default mode is text, so output should not be JSON
 	var parsed map[string]interface{}
-	if json.Unmarshal([]byte(buf.String()), &parsed) == nil {
+	if json.Unmarshal(buf.Bytes(), &parsed) == nil {
 		t.Error("expected default output to be text, not JSON")
 	}
 }
@@ -307,7 +307,7 @@ func TestCommandResultOmitsEmptyOptionalFields(t *testing.T) {
 func TestEmitResultTextModeWithHints(t *testing.T) {
 	cmd := &cobra.Command{Use: "deploy"}
 	cmd.PersistentFlags().StringP("output", "o", "text", "Output format")
-	cmd.ParseFlags([]string{"-o", "text"})
+	_ = cmd.ParseFlags([]string{"-o", "text"})
 
 	result := CommandResult{
 		Version: "1",
@@ -350,7 +350,7 @@ func TestEmitResultTextModeWithHints(t *testing.T) {
 func TestEmitResultTextModePassPrefix(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
 	cmd.PersistentFlags().StringP("output", "o", "text", "Output format")
-	cmd.ParseFlags([]string{"-o", "text"})
+	_ = cmd.ParseFlags([]string{"-o", "text"})
 
 	result := CommandResult{
 		Version: "1",
@@ -373,7 +373,7 @@ func TestEmitResultTextModePassPrefix(t *testing.T) {
 func TestEmitResultTextModeZeroDurationOmitted(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
 	cmd.PersistentFlags().StringP("output", "o", "text", "Output format")
-	cmd.ParseFlags([]string{"-o", "text"})
+	_ = cmd.ParseFlags([]string{"-o", "text"})
 
 	result := CommandResult{
 		Version: "1",
@@ -400,7 +400,7 @@ func TestEmitResultTextModeZeroDurationOmitted(t *testing.T) {
 func TestEmitResultJSONModeEndsWithNewline(t *testing.T) {
 	cmd := &cobra.Command{Use: "test"}
 	cmd.PersistentFlags().StringP("output", "o", "text", "Output format")
-	cmd.ParseFlags([]string{"-o", "json"})
+	_ = cmd.ParseFlags([]string{"-o", "json"})
 
 	result := CommandResult{
 		Version: "1",

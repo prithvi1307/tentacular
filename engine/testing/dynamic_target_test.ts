@@ -1,7 +1,7 @@
-import { assertEquals, assertExists } from "jsr:@std/assert@1.0.11";
+import { assertEquals } from "jsr:@std/assert@1.0.11";
 import { createMockContext } from "./mocks.ts";
 import { detectDrift } from "./drift.ts";
-import type { ContractSpec } from "../context/types.ts";
+import type { ContractSpec as _ContractSpec } from "../context/types.ts";
 
 // --- Group 2: Dynamic Target Tests ---
 
