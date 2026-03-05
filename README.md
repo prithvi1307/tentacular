@@ -17,6 +17,7 @@ Three components form the system: a Go CLI manages the full lifecycle, an in-clu
 | [tentacular](https://github.com/randybias/tentacular) | Go CLI (`tntc`) + Deno workflow engine |
 | [tentacular-mcp](https://github.com/randybias/tentacular-mcp) | In-cluster MCP server (Helm chart, 32 tools) |
 | [tentacular-skill](https://github.com/randybias/tentacular-skill) | Agent skill definition for AI assistants |
+| [tentacular-catalog](https://github.com/randybias/tentacular-catalog) | Workflow template catalog + GitHub Pages site |
 
 ## Overview
 
@@ -139,38 +140,33 @@ export default async function run(ctx: Context, input: unknown): Promise<unknown
 
 See [docs/node-contract.md](docs/node-contract.md) for the full Context API, auth injection, and testing fixtures.
 
-## Examples
+## Template Catalog
 
-| Example | Description | Secrets Required |
-|---------|-------------|-----------------|
-| `hn-digest` | Fetch and filter top Hacker News stories | None |
-| `github-digest` | Fetch GitHub repos and create a summary digest | GitHub token, Slack webhook |
-| `pr-digest` | Summarize PRs with Claude and send to Slack | GitHub token, Anthropic API key, Slack webhook |
-| `uptime-prober` | Probe HTTP endpoints on cron, alert to Slack when down | Slack webhook |
-| `cluster-health-collector` | Fetch K8s cluster state, store to Postgres | Postgres password |
-| `cluster-health-reporter` | Daily AI-analyzed cluster health report to Slack | Postgres password, Anthropic API key, Slack webhook |
-| `word-counter` | Simple word counting example | None |
+Production-ready workflow templates are available in the [tentacular-catalog](https://github.com/randybias/tentacular-catalog):
 
 ```bash
-# Try the no-secrets example
-tntc validate example-workflows/hn-digest
-tntc test example-workflows/hn-digest
-tntc dev example-workflows/hn-digest
+# Browse available templates
+tntc catalog list
+tntc catalog search monitoring
+tntc catalog info hn-digest
+
+# Scaffold from a template
+tntc catalog init hn-digest my-news-digest
+cd my-news-digest
+tntc validate
+tntc dev
 ```
 
-**hn-digest** DAG:
+| Template | Description | Complexity |
+|----------|-------------|-----------|
+| `word-counter` | Simple word counting example | simple |
+| `hn-digest` | Fetch and filter top Hacker News stories | moderate |
+| `uptime-prober` | Probe HTTP endpoints on cron, alert to Slack | moderate |
+| `github-digest` | Fetch GitHub repos and create a summary digest | moderate |
+| `pr-review` | Automated PR review with parallel security scans | advanced |
+| `cluster-health-collector` | Collect K8s cluster health, store to Postgres | moderate |
 
-```mermaid
-flowchart LR
-    trigger_manual{{manual}}
-    fetch-stories[fetch-stories]
-    filter-stories[filter-stories]
-    format-digest[format-digest]
-
-    trigger_manual --> fetch-stories
-    fetch-stories --> filter-stories
-    filter-stories --> format-digest
-```
+See `tntc catalog list` for the full catalog.
 
 ## Architecture
 
@@ -179,7 +175,7 @@ flowchart LR
 | `cmd/tntc/` | CLI entry point |
 | `pkg/` | Go packages: spec parser, builder, MCP client, CLI commands |
 | `engine/` | Deno TypeScript engine: compiler, executor, context, server, telemetry |
-| `example-workflows/` | Runnable example workflows |
+| `pkg/catalog/` | Catalog client for fetching workflow templates |
 | `deploy/` | Infrastructure scripts (gVisor installation, RuntimeClass) |
 | `docs/` | Reference documentation |
 

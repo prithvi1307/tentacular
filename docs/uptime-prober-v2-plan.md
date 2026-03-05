@@ -1,8 +1,9 @@
 # Uptime-Prober v2 Upgrade Plan
 
 **Date:** 2026-02-10
-**Status:** ✅ COMPLETED
+**Status:** COMPLETED
 **Prerequisites:** Fast deploy feature (base-engine-image + configmap-code-deploy) — merged to main
+**Note:** Paths reference the former `example-workflows/` directory. This workflow now lives in [tentacular-catalog](https://github.com/randybias/tentacular-catalog) under `templates/uptime-prober/`.
 **Completion Date:** 2026-02-10
 **Hotfix Applied:** `f094352` - ConfigMap key flattening to comply with K8s validation
 

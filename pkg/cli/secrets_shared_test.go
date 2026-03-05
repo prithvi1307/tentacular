@@ -26,7 +26,7 @@ func TestSharedSecretsE2E_BuildSecretManifestResolvesSharedRef(t *testing.T) {
 	// Shared secret as plain text
 	_ = os.WriteFile(filepath.Join(sharedDir, "hn-api-key"), []byte("hn_test_key\n"), 0o644)
 
-	wfDir := filepath.Join(repoRoot, "example-workflows", "test-wf")
+	wfDir := filepath.Join(repoRoot, "workflows", "test-wf")
 	_ = os.MkdirAll(wfDir, 0o755)
 
 	// Per-workflow .secrets.yaml using $shared references
@@ -67,7 +67,7 @@ func TestSharedSecretsE2E_MissingSharedSecretErrors(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(repoRoot, ".secrets"), 0o755)
 	// Do NOT create the "github" shared secret
 
-	wfDir := filepath.Join(repoRoot, "example-workflows", "missing-wf")
+	wfDir := filepath.Join(repoRoot, "workflows", "missing-wf")
 	_ = os.MkdirAll(wfDir, 0o755)
 	_ = os.WriteFile(filepath.Join(wfDir, ".secrets.yaml"), []byte(`github: $shared.github
 `), 0o644)

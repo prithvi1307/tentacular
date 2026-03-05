@@ -6,7 +6,11 @@ The `tntc` CLI manages the full workflow lifecycle — from scaffolding to deplo
 
 | Command | Usage | Description |
 |---------|-------|-------------|
-| `init` | `tntc init <name>` | Scaffold a new workflow directory |
+| `init` | `tntc init <name>` | Scaffold a blank workflow directory |
+| `catalog list` | `tntc catalog list [--category=X] [--tag=X]` | List templates from the workflow catalog |
+| `catalog search` | `tntc catalog search <query>` | Search templates by name, description, or tags |
+| `catalog info` | `tntc catalog info <name>` | Show full details for a template |
+| `catalog init` | `tntc catalog init <template> [name]` | Scaffold a workflow from a catalog template |
 | `validate` | `tntc validate [dir]` | Validate workflow.yaml (DAG acyclicity, naming, edges) |
 | `dev` | `tntc dev [dir]` | Local dev server with hot-reload |
 | `test` | `tntc test [dir][/<node>]` | Run node or pipeline tests against fixtures |
@@ -44,6 +48,36 @@ The `tntc` CLI manages the full workflow lifecycle — from scaffolding to deplo
 | `--env` | | (none) | Target environment from config (for deploy, etc.) |
 
 Namespace resolution order: CLI `-n` flag > `workflow.yaml deployment.namespace` > config file default > `default`.
+
+## Catalog Commands
+
+Browse and scaffold from the [workflow template catalog](https://github.com/randybias/tentacular-catalog).
+
+```bash
+# List all templates (cached for 1h)
+tntc catalog list
+tntc catalog list --category monitoring
+tntc catalog list --tag beginner-friendly
+tntc catalog list --json
+
+# Search by keyword
+tntc catalog search digest
+
+# Show full template details
+tntc catalog info hn-digest
+
+# Scaffold a workflow from a template
+tntc catalog init hn-digest                    # uses template name as workflow name
+tntc catalog init hn-digest my-news-digest     # custom name
+tntc catalog init hn-digest my-digest --namespace my-ns  # set namespace
+
+# Bypass cache
+tntc catalog list --no-cache
+```
+
+The catalog index is fetched from the configured `catalog.url` (default: GitHub raw content) and cached locally at `~/.tentacular/cache/catalog.yaml`. Use `--no-cache` to force a fresh fetch.
+
+On `catalog init`, the `minTentacularVersion` field is checked against the current `tntc` version. A warning is printed if your CLI is older than the template requires (not a hard block).
 
 ## Key Command Flags
 
@@ -114,6 +148,10 @@ environments:
     runtime_class: gvisor
     mcp_endpoint: http://prod-mcp.example.com:30080/mcp
     mcp_token_path: ~/.tentacular/mcp-token-prod
+
+catalog:
+  url: https://raw.githubusercontent.com/randybias/tentacular-catalog/main  # overridable for private catalogs
+  cacheTTL: 1h
 ```
 
 ### Configuration Fields
@@ -130,6 +168,8 @@ environments:
 | `config_overrides` | Env | Key-value pairs merged into workflow config |
 | `secrets_source` | Env | Secrets backend (default: local `$shared` references) |
 | `enforcement` | Env | Contract enforcement mode (default: strict) |
+| `catalog.url` | Top | Base URL for the template catalog (default: GitHub raw content) |
+| `catalog.cacheTTL` | Top | How long to cache catalog.yaml locally (default: `1h`) |
 
 ### MCP Resolution
 
@@ -145,7 +185,7 @@ MCP endpoint and token are resolved per-environment:
 Scans `nodes/*.ts` for `ctx.secrets` references and validates that all `$shared` references in `.secrets.yaml` resolve to files in the repo-root `.secrets/` directory.
 
 ```
-$ tntc secrets check example-workflows/ai-news-roundup
+$ tntc secrets check my-workflow
 Secrets check for ai-news-roundup:
   openai  provisioned (shared)
   slack  provisioned (shared)
@@ -166,7 +206,7 @@ Copies `.secrets.yaml.example` to `.secrets.yaml`, uncommenting example values.
 All workflow secrets use `$shared.<name>` references pointing to the repo-root `.secrets/` directory. Direct secret values in `.secrets.yaml` are rejected.
 
 ```yaml
-# example-workflows/my-workflow/.secrets.yaml
+# my-workflow/.secrets.yaml
 github: $shared.github    # resolves from <repo-root>/.secrets/github
 slack: $shared.slack       # resolves from <repo-root>/.secrets/slack
 ```

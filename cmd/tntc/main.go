@@ -48,6 +48,9 @@ func main() {
 	root.AddCommand(cli.NewVisualizeCmd())
 	root.AddCommand(cli.NewAuditCommand())
 
+	// Catalog commands
+	root.AddCommand(cli.NewCatalogCmd())
+
 	// Version
 	root.AddCommand(&cobra.Command{
 		Use:   "version",

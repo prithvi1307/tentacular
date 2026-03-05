@@ -13,7 +13,7 @@ Tentacular is a workflow execution platform that runs TypeScript DAGs on Kuberne
 | `cmd/tntc/` | CLI entry point (Cobra command tree) |
 | `pkg/` | Go packages: spec parser, builder, K8s client, CLI commands |
 | `engine/` | Deno TypeScript engine: compiler, executor, context, server, telemetry |
-| `example-workflows/` | Runnable example workflows |
+| `pkg/catalog/` | Catalog client for fetching workflow templates |
 | `deploy/` | Infrastructure scripts (gVisor installation, RuntimeClass) |
 | `openspec/` | Change tracking and specifications |
 | `docs/` | Project documentation |

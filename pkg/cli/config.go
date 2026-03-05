@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/randybias/tentacular/pkg/catalog"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,6 +32,7 @@ type TentacularConfig struct {
 	Environments map[string]EnvironmentConfig `yaml:"environments,omitempty"`
 	ModuleProxy  ModuleProxyConfig            `yaml:"moduleProxy,omitempty"`
 	MCP          MCPConfig                    `yaml:"mcp,omitempty"`
+	Catalog      catalog.CatalogConfig        `yaml:"catalog,omitempty"`
 }
 
 // LoadConfig returns merged config: project > user > defaults.
@@ -99,5 +101,11 @@ func mergeConfig(base, override *TentacularConfig) {
 	}
 	if override.MCP.TokenPath != "" {
 		base.MCP.TokenPath = override.MCP.TokenPath
+	}
+	if override.Catalog.URL != "" {
+		base.Catalog.URL = override.Catalog.URL
+	}
+	if override.Catalog.CacheTTL != "" {
+		base.Catalog.CacheTTL = override.Catalog.CacheTTL
 	}
 }

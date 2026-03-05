@@ -8,7 +8,7 @@ Before making changes, read **[docs/architecture.md](docs/architecture.md)** to 
 
 - **Go CLI** (`cmd/tntc/`, `pkg/`) — lifecycle management, K8s operations
 - **Deno Engine** (`engine/`) — DAG compilation and execution
-- **Example Workflows** (`example-workflows/`) — runnable workflow examples
+- **Template Catalog** — workflow templates available via `tntc catalog list` from [tentacular-catalog](https://github.com/randybias/tentacular-catalog)
 - **Infrastructure** (`deploy/`) — gVisor setup scripts and K8s resources
 
 ## Key Commands

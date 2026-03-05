@@ -132,7 +132,7 @@ func TestResolveSharedSecrets(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(sharedDir, "slack"), []byte(`{"webhook_url":"https://hooks.slack.com/test"}`), 0o644)
 
 	// Create workflow dir inside repo
-	workflowDir := filepath.Join(repoRoot, "example-workflows", "test")
+	workflowDir := filepath.Join(repoRoot, "workflows", "test")
 	_ = os.MkdirAll(workflowDir, 0o755)
 
 	secrets := map[string]interface{}{

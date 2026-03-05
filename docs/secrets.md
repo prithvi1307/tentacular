@@ -44,7 +44,7 @@ To avoid duplicating secrets (e.g., Slack webhooks) across workflows, place shar
 Reference shared secrets from a workflow's `.secrets.yaml` using `$shared.<name>`:
 
 ```yaml
-# example-workflows/uptime-prober/.secrets.yaml
+# uptime-prober/.secrets.yaml
 slack: $shared.slack
 ```
 
