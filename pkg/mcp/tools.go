@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // --- wf_apply ---
@@ -174,25 +175,74 @@ func (c *Client) WfList(ctx context.Context, namespace string) ([]WfListItem, er
 	return items, nil
 }
 
+// --- wf_pods ---
+
+// WfPodsParams are the arguments for the wf_pods MCP tool.
+type WfPodsParams struct {
+	Namespace string `json:"namespace"`
+}
+
+// WfPod represents a single pod in the wf_pods response.
+type WfPod struct {
+	Name     string   `json:"name"`
+	Phase    string   `json:"phase"`
+	Ready    bool     `json:"ready"`
+	Restarts int      `json:"restarts"`
+	Images   []string `json:"images"`
+	Age      string   `json:"age"`
+}
+
+// WfPodsResult is the response from wf_pods.
+type WfPodsResult struct {
+	Pods []WfPod `json:"pods"`
+}
+
+// WfPods calls the wf_pods MCP tool to list pods in a namespace.
+func (c *Client) WfPods(ctx context.Context, namespace string) (*WfPodsResult, error) {
+	raw, err := c.CallTool(ctx, "wf_pods", WfPodsParams{
+		Namespace: namespace,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var result WfPodsResult
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, fmt.Errorf("parsing wf_pods result: %w", err)
+	}
+	return &result, nil
+}
+
 // --- wf_logs ---
 
 // WfLogsParams are the arguments for the wf_logs MCP tool.
 type WfLogsParams struct {
 	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	TailLines int64  `json:"tailLines,omitempty"`
+	Pod       string `json:"pod"`
+	Container string `json:"container,omitempty"`
+	TailLines int64  `json:"tail_lines,omitempty"`
 }
 
 // WfLogsResult is the response from wf_logs.
 type WfLogsResult struct {
-	Logs string `json:"logs"`
+	Logs      string   `json:"logs"`      // legacy: single string
+	Lines     []string `json:"lines"`     // current: array of lines
+	Pod       string   `json:"pod"`
+	Container string   `json:"container"`
+}
+
+// LogText returns the log content as a single string.
+func (r *WfLogsResult) LogText() string {
+	if len(r.Lines) > 0 {
+		return strings.Join(r.Lines, "\n")
+	}
+	return r.Logs
 }
 
 // WfLogs calls the wf_logs MCP tool to retrieve pod logs.
-func (c *Client) WfLogs(ctx context.Context, namespace, name string, tailLines int64) (*WfLogsResult, error) {
+func (c *Client) WfLogs(ctx context.Context, namespace, pod string, tailLines int64) (*WfLogsResult, error) {
 	raw, err := c.CallTool(ctx, "wf_logs", WfLogsParams{
 		Namespace: namespace,
-		Name:      name,
+		Pod:       pod,
 		TailLines: tailLines,
 	})
 	if err != nil {
