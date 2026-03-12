@@ -18,6 +18,13 @@ Three components form the system: a Go CLI manages the full lifecycle, an in-clu
 | [tentacular-mcp](https://github.com/randybias/tentacular-mcp) | In-cluster MCP server (Helm chart, 32 tools) |
 | [tentacular-skill](https://github.com/randybias/tentacular-skill) | Agent skill definition for AI assistants |
 | [tentacular-catalog](https://github.com/randybias/tentacular-catalog) | Workflow template catalog + GitHub Pages site |
+| [tentacular-docs](https://github.com/randybias/tentacular-docs) | [Documentation site](https://randybias.github.io/tentacular-docs) |
+
+## Documentation
+
+Full documentation is available at **[randybias.github.io/tentacular-docs](https://randybias.github.io/tentacular-docs)** — including quickstart, architecture, CLI reference, security model, and cookbook.
+
+The `docs/` directory in this repo is the source-of-record for the published documentation site.
 
 ## Overview
 
