@@ -17,14 +17,12 @@ Three components form the system: a Go CLI manages the full lifecycle, an in-clu
 | [tentacular](https://github.com/randybias/tentacular) | Go CLI (`tntc`) + Deno workflow engine |
 | [tentacular-mcp](https://github.com/randybias/tentacular-mcp) | In-cluster MCP server (Helm chart, 32 tools) |
 | [tentacular-skill](https://github.com/randybias/tentacular-skill) | Agent skill definition for AI assistants |
-| [tentacular-catalog](https://github.com/randybias/tentacular-catalog) | Workflow template catalog + GitHub Pages site |
+| [tentacular-catalog](https://github.com/randybias/tentacular-catalog) | [Workflow template catalog](https://randybias.github.io/tentacular-catalog) |
 | [tentacular-docs](https://github.com/randybias/tentacular-docs) | [Documentation site](https://randybias.github.io/tentacular-docs) |
 
 ## Documentation
 
-Full documentation is available at **[randybias.github.io/tentacular-docs](https://randybias.github.io/tentacular-docs)** — including quickstart, architecture, CLI reference, security model, and cookbook.
-
-The `docs/` directory in this repo is the source-of-record for the published documentation site.
+Full documentation is available at **[randybias.github.io/tentacular-docs](https://randybias.github.io/tentacular-docs)** — including [quickstart](https://randybias.github.io/tentacular-docs/guides/quickstart/), [architecture](https://randybias.github.io/tentacular-docs/concepts/architecture/), [CLI reference](https://randybias.github.io/tentacular-docs/reference/cli/), [security model](https://randybias.github.io/tentacular-docs/concepts/security/), and [cookbook](https://randybias.github.io/tentacular-docs/cookbook/deploy-tentacle/).
 
 ## Overview
 
@@ -44,12 +42,12 @@ All CLI commands that interact with the cluster route through the MCP server via
 
 ## Prerequisites
 
-- [Go](https://go.dev/dl/) 1.22+ — build the CLI
 - [Deno](https://deno.land/) 2.x — execute workflow engine locally, run tests
 - [Docker](https://docs.docker.com/get-docker/) 20+ — build container images
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) 1.28+ — Kubernetes cluster access
 - A Kubernetes cluster 1.28+ as deployment target
-- **Optional:** [gVisor](https://gvisor.dev/) on cluster nodes for kernel-level sandboxing (see [docs/gvisor-setup.md](docs/gvisor-setup.md))
+- [Go](https://go.dev/dl/) 1.22+ — only if building the CLI from source
+- **Optional:** [gVisor](https://gvisor.dev/) on cluster nodes for kernel-level sandboxing (see [gVisor Setup guide](https://randybias.github.io/tentacular-docs/guides/gvisor-setup/))
 
 ## Installation
 
@@ -109,7 +107,7 @@ helm install tentacular-mcp ./tentacular-mcp/charts/tentacular-mcp \
   --set auth.token="${TOKEN}"
 ```
 
-See the [tentacular-mcp README](https://github.com/randybias/tentacular-mcp) for Helm values and configuration options.
+See the [MCP Server Setup guide](https://randybias.github.io/tentacular-docs/guides/mcp-server-setup/) for Helm values and configuration options.
 
 ### 5. Configure the CLI
 
@@ -117,6 +115,8 @@ See the [tentacular-mcp README](https://github.com/randybias/tentacular-mcp) for
 tntc configure --registry registry.example.com
 # Add MCP endpoint and token to ~/.tentacular/config.yaml
 ```
+
+See the [Cluster Configuration guide](https://randybias.github.io/tentacular-docs/guides/cluster-configuration/) for the full config reference.
 
 ### 6. Build and deploy
 
@@ -142,17 +142,20 @@ Every node is a TypeScript file with a single default export:
 import type { Context } from "tentacular";
 
 export default async function run(ctx: Context, input: unknown): Promise<unknown> {
-  const resp = await ctx.fetch("github", "/user/repos");
+  const gh = ctx.dependency("github-api");
+  const resp = await gh.fetch!("/user/repos", {
+    headers: { "Authorization": `Bearer ${gh.secret}` },
+  });
   ctx.log.info("Fetched repos");
   return { repos: await resp.json() };
 }
 ```
 
-See [docs/node-contract.md](docs/node-contract.md) for the full Context API, auth injection, and testing fixtures.
+See [Node Contract reference](https://randybias.github.io/tentacular-docs/reference/node-contract/) for the full Context API, auth patterns, and testing fixtures.
 
 ## Template Catalog
 
-Production-ready workflow templates are available in the [tentacular-catalog](https://github.com/randybias/tentacular-catalog):
+Production-ready workflow templates are available in the [tentacular-catalog](https://github.com/randybias/tentacular-catalog) ([browse online](https://randybias.github.io/tentacular-catalog)):
 
 ```bash
 # Browse available templates
@@ -176,7 +179,7 @@ tntc dev
 | `pr-review` | Automated PR review with parallel security scans | advanced |
 | `cluster-health-collector` | Collect K8s cluster health, store to Postgres | moderate |
 
-See `tntc catalog list` for the full catalog.
+See `tntc catalog list` for the full catalog or [Catalog Usage guide](https://randybias.github.io/tentacular-docs/guides/catalog-usage/).
 
 ## Architecture
 
@@ -187,7 +190,6 @@ See `tntc catalog list` for the full catalog.
 | `engine/` | Deno TypeScript engine: compiler, executor, context, server, telemetry |
 | `pkg/catalog/` | Catalog client for fetching workflow templates |
 | `deploy/` | Infrastructure scripts (gVisor installation, RuntimeClass) |
-| `docs/` | Reference documentation |
 
 ### Namespace Model
 
@@ -195,9 +197,10 @@ See `tntc catalog list` for the full catalog.
 |-----------|---------|------------|
 | `tentacular-system` | MCP server, control plane, cron scheduler | Protected from deletion by self-guard |
 | `tentacular-support` | esm.sh module proxy, caches jsr/npm modules | Protected from deletion by self-guard |
+| `tentacular-exoskeleton` | Backing services (Postgres, NATS, RustFS) when exoskeleton is enabled | Protected from deletion by self-guard |
 | Workflow namespaces | One per deployment, `managed-by: tentacular` label | Created/deleted via MCP tools |
 
-Workflow pods run in their own namespaces with default-deny NetworkPolicy and contract-derived egress rules. They never run inside `tentacular-system`. See [ESM Module Proxy](docs/esm-module-proxy.md) for the module proxy architecture.
+Workflow pods run in their own namespaces with default-deny NetworkPolicy and contract-derived egress rules. They never run inside `tentacular-system`.
 
 ### Infrastructure Setup
 
@@ -223,20 +226,7 @@ Five layers of defense-in-depth, from innermost to outermost:
 
 **Execution Model:** All nodes in a workflow execute within a single Deno process and share memory. Stages run sequentially while nodes within each stage run concurrently via async/await. Isolation is provided at the pod level through gVisor's syscall interception, Deno's permission controls, and Kubernetes SecurityContext hardening. This single-process design prioritizes simplicity and performance while maintaining strong container-level security boundaries.
 
-See [docs/architecture.md](docs/architecture.md) for the full architecture reference including data flow, execution model, and extension points.
-
-## Documentation
-
-| Document | Content |
-|----------|---------|
-| [Architecture](docs/architecture.md) | System design, data flow, execution model, extension points |
-| [CLI Reference](docs/cli.md) | Commands, flags, and usage examples |
-| [Workflow Spec](docs/workflow-spec.md) | workflow.yaml format and field reference |
-| [Node Contract](docs/node-contract.md) | Context API, auth injection, testing fixtures |
-| [Secrets](docs/secrets.md) | Local and production secrets management |
-| [Testing](docs/testing.md) | Go, Deno, and workflow test commands |
-| [gVisor Setup](docs/gvisor-setup.md) | gVisor installation and verification |
-| [Roadmap](docs/roadmap.md) | Project roadmap and future plans |
+See [Architecture](https://randybias.github.io/tentacular-docs/concepts/architecture/) for the full architecture reference including data flow, execution model, and extension points.
 
 ## License
 
