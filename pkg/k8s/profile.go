@@ -32,7 +32,15 @@ type ClusterProfile struct {
 	Nodes          []NodeInfo         `json:"nodes"                yaml:"nodes"`
 	Extensions     ExtensionSet       `json:"extensions"           yaml:"extensions"`
 	NetworkPolicy  NetPolInfo         `json:"networkPolicy"        yaml:"networkPolicy"`
+	Exoskeleton    ExoskeletonInfo    `json:"exoskeleton"          yaml:"exoskeleton"`
 	GVisor         bool               `json:"gvisor"               yaml:"gvisor"`
+}
+
+// ExoskeletonInfo describes exoskeleton service availability in the cluster.
+type ExoskeletonInfo struct {
+	Enabled           bool     `json:"enabled"                     yaml:"enabled"`
+	Services          []string `json:"services,omitempty"          yaml:"services,omitempty"`
+	CleanupOnUndeploy bool     `json:"cleanupOnUndeploy,omitempty" yaml:"cleanupOnUndeploy,omitempty"`
 }
 
 // NodeInfo summarizes a single cluster node.
@@ -260,10 +268,21 @@ func deriveGuidance(p *ClusterProfile) []string {
 
 	if p.PodSecurity == "restricted" {
 		g = append(g, "Namespace enforces restricted PodSecurity — containers must run as non-root with no privilege escalation")
+	} else if p.PodSecurity == "unknown" {
+		g = append(g, "WARNING: Pod Security Admission not configured — recommend enabling 'restricted' profile for production namespaces")
 	}
 
 	if p.Extensions.CertManager {
 		g = append(g, "cert-manager available — TLS certificates can be provisioned automatically")
+	}
+
+	// Exoskeleton guidance
+	if p.Exoskeleton.Enabled && len(p.Exoskeleton.Services) > 0 {
+		g = append(g, fmt.Sprintf("Exoskeleton services detected: %s — use tentacular-* prefix in contracts to reference these services",
+			strings.Join(p.Exoskeleton.Services, ", ")))
+		if p.Exoskeleton.CleanupOnUndeploy {
+			g = append(g, "Exoskeleton cleanup-on-undeploy is enabled — undeploying a workflow will permanently remove its provisioned resources (Postgres schemas, NATS credentials, RustFS objects)")
+		}
 	}
 
 	// Security note: node labels are included verbatim and may contain sensitive metadata.
@@ -368,6 +387,21 @@ func (p *ClusterProfile) Markdown() string {
 	fmt.Fprintf(&sb, "- %s Metrics Server\n", checkmark(ext.MetricsServer))
 	if len(ext.OtherCRDGroups) > 0 {
 		fmt.Fprintf(&sb, "- Other CRD groups: %s\n", strings.Join(ext.OtherCRDGroups, ", "))
+	}
+
+	// Exoskeleton
+	if p.Exoskeleton.Enabled {
+		fmt.Fprintf(&sb, "\n## Exoskeleton Services\n")
+		if len(p.Exoskeleton.Services) > 0 {
+			for _, svc := range p.Exoskeleton.Services {
+				fmt.Fprintf(&sb, "- %s\n", svc)
+			}
+		} else {
+			fmt.Fprintf(&sb, "Enabled but no services detected.\n")
+		}
+		if p.Exoskeleton.CleanupOnUndeploy {
+			fmt.Fprintf(&sb, "- **Cleanup on undeploy:** enabled\n")
+		}
 	}
 
 	// Namespace

@@ -727,7 +727,7 @@ func TestEnvironmentEnforcementRoundTrip(t *testing.T) {
 	}
 }
 
-func TestEnvironmentKubeconfigField(t *testing.T) {
+func TestEnvironmentLegacyKubeconfigFieldIgnored(t *testing.T) {
 	origHome := os.Getenv("HOME")
 	tmpHome := t.TempDir()
 	_ = os.Setenv("HOME", tmpHome)
@@ -740,55 +740,32 @@ func TestEnvironmentKubeconfigField(t *testing.T) {
 
 	userDir := filepath.Join(tmpHome, ".tentacular")
 	_ = os.MkdirAll(userDir, 0o755)
+	// Config files from older versions may still contain kubeconfig fields;
+	// they should be silently ignored without error.
 	configYAML := `environments:
   dev:
     kubeconfig: ~/dev-secrets/nats-admin.kubeconfig
     namespace: tentacular-dev
   prod:
-    kubeconfig: /etc/kubernetes/prod.kubeconfig
     context: prod-context
     namespace: tentacular-prod
-  legacy:
-    context: legacy-ctx
-    namespace: legacy-ns
 `
 	_ = os.WriteFile(filepath.Join(userDir, "config.yaml"), []byte(configYAML), 0o644)
 
-	// Dev: kubeconfig with ~ should be expanded to home dir
 	devEnv, err := LoadEnvironment("dev")
 	if err != nil {
 		t.Fatalf("unexpected error loading dev: %v", err)
-	}
-	expectedPath := filepath.Join(tmpHome, "dev-secrets", "nats-admin.kubeconfig")
-	if devEnv.Kubeconfig != expectedPath {
-		t.Errorf("expected kubeconfig %s, got %s", expectedPath, devEnv.Kubeconfig)
 	}
 	if devEnv.Namespace != "tentacular-dev" {
 		t.Errorf("expected namespace tentacular-dev, got %s", devEnv.Namespace)
 	}
 
-	// Prod: absolute path should be unchanged
 	prodEnv, err := LoadEnvironment("prod")
 	if err != nil {
 		t.Fatalf("unexpected error loading prod: %v", err)
 	}
-	if prodEnv.Kubeconfig != "/etc/kubernetes/prod.kubeconfig" {
-		t.Errorf("expected absolute path unchanged, got %s", prodEnv.Kubeconfig)
-	}
 	if prodEnv.Context != "prod-context" {
 		t.Errorf("expected prod-context, got %s", prodEnv.Context)
-	}
-
-	// Legacy: no kubeconfig field should remain empty
-	legacyEnv, err := LoadEnvironment("legacy")
-	if err != nil {
-		t.Fatalf("unexpected error loading legacy: %v", err)
-	}
-	if legacyEnv.Kubeconfig != "" {
-		t.Errorf("expected empty kubeconfig for legacy env, got %s", legacyEnv.Kubeconfig)
-	}
-	if legacyEnv.Context != "legacy-ctx" {
-		t.Errorf("expected legacy-ctx, got %s", legacyEnv.Context)
 	}
 }
 
