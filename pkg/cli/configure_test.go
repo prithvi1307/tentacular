@@ -89,7 +89,6 @@ func TestConfigure_EnvScoped_NewEnvironment(t *testing.T) {
 	_ = cmd.Flags().Set("oidc-client-id", "myclient")
 	_ = cmd.Flags().Set("oidc-client-secret", "mysecret")
 	_ = cmd.Flags().Set("mcp-endpoint", "https://mcp.example.com")
-	_ = cmd.Flags().Set("kubeconfig", "~/.kube/staging.yaml")
 	_ = cmd.Flags().Set("context", "staging-ctx")
 
 	if err := cmd.RunE(cmd, nil); err != nil {
@@ -124,9 +123,6 @@ func TestConfigure_EnvScoped_NewEnvironment(t *testing.T) {
 	if env.MCPEndpoint != "https://mcp.example.com" {
 		t.Errorf("mcp_endpoint: got %q", env.MCPEndpoint)
 	}
-	if env.Kubeconfig != "~/.kube/staging.yaml" {
-		t.Errorf("kubeconfig: got %q", env.Kubeconfig)
-	}
 	if env.Context != "staging-ctx" {
 		t.Errorf("context: got %q", env.Context)
 	}
@@ -144,7 +140,6 @@ func TestConfigure_EnvScoped_UpdatePreservesOtherFields(t *testing.T) {
     namespace: prod-ns
     oidc_issuer: https://auth.example.com/realms/prod
     oidc_client_id: existing-client
-    kubeconfig: ~/.kube/prod.yaml
 `), 0o644)
 
 	cmd := NewConfigureCmd()
@@ -186,9 +181,6 @@ func TestConfigure_EnvScoped_UpdatePreservesOtherFields(t *testing.T) {
 	}
 	if env.OIDCClientID != "existing-client" {
 		t.Errorf("oidc_client_id should be preserved: got %q", env.OIDCClientID)
-	}
-	if env.Kubeconfig != "~/.kube/prod.yaml" {
-		t.Errorf("kubeconfig should be preserved: got %q", env.Kubeconfig)
 	}
 }
 

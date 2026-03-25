@@ -51,7 +51,6 @@ Examples:
 	cmd.Flags().String("oidc-client-secret", "", "OIDC client secret")
 	cmd.Flags().String("mcp-endpoint", "", "MCP server endpoint URL")
 	cmd.Flags().String("mcp-token-path", "", "Path to static bearer token file")
-	cmd.Flags().String("kubeconfig", "", "Path to kubeconfig file")
 	cmd.Flags().String("context", "", "Kubernetes context name")
 
 	// SSO guided setup
@@ -84,7 +83,7 @@ func runConfigure(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate: env-scoped flags require --env
-	envScopedFlags := []string{"oidc-issuer", "oidc-client-id", "oidc-client-secret", "mcp-endpoint", "mcp-token-path", "kubeconfig", "context"}
+	envScopedFlags := []string{"oidc-issuer", "oidc-client-id", "oidc-client-secret", "mcp-endpoint", "mcp-token-path", "context"}
 	if envName == "" && !sso {
 		for _, f := range envScopedFlags {
 			if cmd.Flags().Changed(f) {
@@ -134,9 +133,6 @@ func runConfigure(cmd *cobra.Command, args []string) error {
 		}
 		if cmd.Flags().Changed("mcp-token-path") {
 			env.MCPTokenPath, _ = cmd.Flags().GetString("mcp-token-path")
-		}
-		if cmd.Flags().Changed("kubeconfig") {
-			env.Kubeconfig, _ = cmd.Flags().GetString("kubeconfig")
 		}
 		if cmd.Flags().Changed("context") {
 			env.Context, _ = cmd.Flags().GetString("context")
@@ -210,9 +206,6 @@ func runConfigure(cmd *cobra.Command, args []string) error {
 		}
 		if env.MCPTokenPath != "" {
 			fmt.Fprintf(cmd.OutOrStdout(), "    mcp_token_path: %s\n", env.MCPTokenPath)
-		}
-		if env.Kubeconfig != "" {
-			fmt.Fprintf(cmd.OutOrStdout(), "    kubeconfig: %s\n", env.Kubeconfig)
 		}
 		if env.Context != "" {
 			fmt.Fprintf(cmd.OutOrStdout(), "    context: %s\n", env.Context)

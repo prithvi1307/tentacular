@@ -9,7 +9,6 @@ import (
 
 // EnvironmentConfig holds per-environment overrides.
 type EnvironmentConfig struct {
-	Kubeconfig      string         `yaml:"kubeconfig,omitempty"`
 	Context         string         `yaml:"context,omitempty"`
 	Namespace       string         `yaml:"namespace,omitempty"`
 	Image           string         `yaml:"image,omitempty"`
@@ -61,9 +60,6 @@ func (c *TentacularConfig) LoadEnvironment(name string) (*EnvironmentConfig, err
 		return nil, fmt.Errorf("environment %q not found in config", name)
 	}
 	// Expand ~ in path fields
-	if env.Kubeconfig != "" {
-		env.Kubeconfig = expandHome(env.Kubeconfig)
-	}
 	if env.MCPTokenPath != "" {
 		env.MCPTokenPath = expandHome(env.MCPTokenPath)
 	}

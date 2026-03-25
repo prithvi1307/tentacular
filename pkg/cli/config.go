@@ -132,9 +132,6 @@ func mergeConfig(base, override *TentacularConfig) {
 // mergeEnvConfig merges individual fields of an EnvironmentConfig override
 // into a base, preserving base fields that the override does not set.
 func mergeEnvConfig(base, override *EnvironmentConfig) {
-	if override.Kubeconfig != "" {
-		base.Kubeconfig = override.Kubeconfig
-	}
 	if override.Context != "" {
 		base.Context = override.Context
 	}

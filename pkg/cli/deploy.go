@@ -46,7 +46,6 @@ type InternalDeployOptions struct {
 	Image           string
 	RuntimeClass    string
 	ImagePullPolicy string
-	Kubeconfig      string // explicit kubeconfig file path (bootstrap-only)
 	Context         string // kubeconfig context override (bootstrap-only)
 	Group           string // optional group ownership for authz annotation stamping
 	Share           string // optional mode preset (e.g. "group-edit", "private")
