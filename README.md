@@ -247,6 +247,8 @@ See [Architecture](https://randybias.github.io/tentacular-docs/concepts/architec
 
 Join the Tentacular community on the CNCF Slack: http://slack.cncf.io
 
+We will soon announce the community calendar.
+
 ## License
 
 Proprietary. Copyright Mirantis, Inc. All rights reserved. See LICENSE.
