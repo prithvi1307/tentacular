@@ -1118,3 +1118,297 @@ contract:
 		t.Errorf("expected protocol s3, got %s", dep.Protocol)
 	}
 }
+
+func sidecarBaseYAML(extra string) string {
+	return `
+name: sidecar-test
+version: "1.0"
+triggers:
+  - type: manual
+nodes:
+  fetch:
+    path: ./nodes/fetch.ts
+` + extra
+}
+
+func TestValidSidecar(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ffmpeg
+    image: ghcr.io/randybias/tentacular-ffmpeg-sidecar:v1.0.0
+    port: 9000
+`)
+	wf, errs := Parse([]byte(yaml))
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	if len(wf.Sidecars) != 1 {
+		t.Fatalf("expected 1 sidecar, got %d", len(wf.Sidecars))
+	}
+	if wf.Sidecars[0].Name != "ffmpeg" {
+		t.Errorf("expected sidecar name ffmpeg, got %s", wf.Sidecars[0].Name)
+	}
+}
+
+func TestSidecarNameRequired(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ""
+    image: some/image:latest
+    port: 9000
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) == 0 {
+		t.Fatal("expected errors for empty sidecar name")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "name is required") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'name is required' error, got: %v", errs)
+	}
+}
+
+func TestSidecarNameInvalid(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: "123invalid"
+    image: some/image:latest
+    port: 9000
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) == 0 {
+		t.Fatal("expected errors for invalid sidecar name")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "name must match") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'name must match' error, got: %v", errs)
+	}
+}
+
+func TestSidecarImageRequired(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ffmpeg
+    image: ""
+    port: 9000
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) == 0 {
+		t.Fatal("expected errors for empty sidecar image")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "image is required") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'image is required' error, got: %v", errs)
+	}
+}
+
+func TestSidecarPortRequired(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ffmpeg
+    image: some/image:latest
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) == 0 {
+		t.Fatal("expected errors for missing sidecar port")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "port is required") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'port is required' error, got: %v", errs)
+	}
+}
+
+func TestSidecarPortRange(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ffmpeg
+    image: some/image:latest
+    port: 80
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) == 0 {
+		t.Fatal("expected errors for out-of-range port")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "port must be 1024-65535") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'port must be 1024-65535' error, got: %v", errs)
+	}
+}
+
+func TestSidecarPortReserved(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ffmpeg
+    image: some/image:latest
+    port: 8080
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) == 0 {
+		t.Fatal("expected errors for reserved port 8080")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "port 8080 is reserved") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'port 8080 is reserved' error, got: %v", errs)
+	}
+}
+
+func TestSidecarDuplicateName(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ffmpeg
+    image: some/image:latest
+    port: 9000
+  - name: ffmpeg
+    image: other/image:latest
+    port: 9001
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) == 0 {
+		t.Fatal("expected errors for duplicate sidecar name")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "duplicate sidecar name") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'duplicate sidecar name' error, got: %v", errs)
+	}
+}
+
+func TestSidecarDuplicatePort(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ffmpeg
+    image: some/image:latest
+    port: 9000
+  - name: chrome
+    image: other/image:latest
+    port: 9000
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) == 0 {
+		t.Fatal("expected errors for duplicate sidecar port")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "duplicate port") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'duplicate port' error, got: %v", errs)
+	}
+}
+
+func TestSidecarProtocolInvalid(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ffmpeg
+    image: some/image:latest
+    port: 9000
+    protocol: ftp
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) == 0 {
+		t.Fatal("expected errors for invalid protocol")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "protocol must be") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'protocol must be' error, got: %v", errs)
+	}
+}
+
+func TestSidecarProtocolOptional(t *testing.T) {
+	yaml := sidecarBaseYAML(`
+sidecars:
+  - name: ffmpeg
+    image: some/image:latest
+    port: 9000
+`)
+	_, errs := Parse([]byte(yaml))
+	if len(errs) > 0 {
+		t.Fatalf("expected no errors for sidecar without protocol, got: %v", errs)
+	}
+}
+
+func TestSidecarImageWithNewline(t *testing.T) {
+	// Test validateSidecars directly since YAML unmarshaling normalizes newlines in strings
+	sidecars := []SidecarSpec{
+		{Name: "ffmpeg", Image: "some/image:latest\nmalicious: injection", Port: 9000},
+	}
+	errs := validateSidecars(sidecars)
+	if len(errs) == 0 {
+		t.Fatal("expected error for image with newline")
+	}
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "image must not contain newlines") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'image must not contain newlines' error, got: %v", errs)
+	}
+}
+
+func TestSidecarEnvValueWithNewline(t *testing.T) {
+	wf := &Workflow{
+		Sidecars: []SidecarSpec{
+			{
+				Name:  "ffmpeg",
+				Image: "some/image:latest",
+				Port:  9000,
+				Env:   map[string]string{"LOG_LEVEL": "debug\ninjected: true"},
+			},
+		},
+	}
+	sidecarErrs := validateSidecars(wf.Sidecars)
+	if len(sidecarErrs) == 0 {
+		t.Fatal("expected error for env value with newline")
+	}
+	found := false
+	for _, e := range sidecarErrs {
+		if strings.Contains(e, "value must not contain newlines") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'value must not contain newlines' error, got: %v", sidecarErrs)
+	}
+}

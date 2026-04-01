@@ -176,6 +176,132 @@ func buildDeployAnnotations(meta *spec.WorkflowMetadata, triggers []spec.Trigger
 	return "  annotations:\n" + strings.Join(lines, "\n") + "\n"
 }
 
+// buildSidecarContainers generates YAML for sidecar container specs.
+// Each sidecar gets the same SecurityContext hardening as the engine container.
+// Returns the YAML string to inject into the containers section (8-space base indent).
+func buildSidecarContainers(sidecars []spec.SidecarSpec) string {
+	if len(sidecars) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	for _, sc := range sidecars {
+		// Container name and image
+		fmt.Fprintf(&sb, "        - name: %s\n", sc.Name)
+		fmt.Fprintf(&sb, "          image: %s\n", sc.Image)
+		sb.WriteString("          imagePullPolicy: Always\n")
+
+		// Command (optional)
+		if len(sc.Command) > 0 {
+			sb.WriteString("          command:\n")
+			for _, c := range sc.Command {
+				fmt.Fprintf(&sb, "            - %s\n", c)
+			}
+		}
+
+		// Args (optional)
+		if len(sc.Args) > 0 {
+			sb.WriteString("          args:\n")
+			for _, a := range sc.Args {
+				fmt.Fprintf(&sb, "            - %s\n", a)
+			}
+		}
+
+		// Env (optional)
+		if len(sc.Env) > 0 {
+			sb.WriteString("          env:\n")
+			// Sort keys for deterministic output
+			envKeys := make([]string, 0, len(sc.Env))
+			for k := range sc.Env {
+				envKeys = append(envKeys, k)
+			}
+			sort.Strings(envKeys)
+			for _, k := range envKeys {
+				fmt.Fprintf(&sb, "            - name: %s\n", k)
+				fmt.Fprintf(&sb, "              value: %s\n", sc.Env[k])
+			}
+		}
+
+		// Port
+		sb.WriteString("          ports:\n")
+		fmt.Fprintf(&sb, "            - containerPort: %d\n", sc.Port)
+		sb.WriteString("              protocol: TCP\n")
+
+		// SecurityContext (same hardening as engine)
+		sb.WriteString("          securityContext:\n")
+		sb.WriteString("            readOnlyRootFilesystem: true\n")
+		sb.WriteString("            allowPrivilegeEscalation: false\n")
+		sb.WriteString("            capabilities:\n")
+		sb.WriteString("              drop:\n")
+		sb.WriteString("                - ALL\n")
+
+		// Readiness probe
+		healthPath := sc.HealthPath
+		if healthPath == "" {
+			healthPath = "/health"
+		}
+		sb.WriteString("          readinessProbe:\n")
+		sb.WriteString("            httpGet:\n")
+		fmt.Fprintf(&sb, "              path: %s\n", healthPath)
+		fmt.Fprintf(&sb, "              port: %d\n", sc.Port)
+		sb.WriteString("            initialDelaySeconds: 3\n")
+		sb.WriteString("            periodSeconds: 5\n")
+
+		// Volume mounts: /shared + /tmp
+		sb.WriteString("          volumeMounts:\n")
+		sb.WriteString("            - name: shared\n")
+		sb.WriteString("              mountPath: /shared\n")
+		fmt.Fprintf(&sb, "            - name: tmp-%s\n", sc.Name)
+		sb.WriteString("              mountPath: /tmp\n")
+
+		// Resources (optional)
+		if sc.Resources != nil {
+			sb.WriteString("          resources:\n")
+			if sc.Resources.Requests.CPU != "" || sc.Resources.Requests.Memory != "" {
+				sb.WriteString("            requests:\n")
+				if sc.Resources.Requests.Memory != "" {
+					fmt.Fprintf(&sb, "              memory: \"%s\"\n", sc.Resources.Requests.Memory)
+				}
+				if sc.Resources.Requests.CPU != "" {
+					fmt.Fprintf(&sb, "              cpu: \"%s\"\n", sc.Resources.Requests.CPU)
+				}
+			}
+			if sc.Resources.Limits.CPU != "" || sc.Resources.Limits.Memory != "" {
+				sb.WriteString("            limits:\n")
+				if sc.Resources.Limits.Memory != "" {
+					fmt.Fprintf(&sb, "              memory: \"%s\"\n", sc.Resources.Limits.Memory)
+				}
+				if sc.Resources.Limits.CPU != "" {
+					fmt.Fprintf(&sb, "              cpu: \"%s\"\n", sc.Resources.Limits.CPU)
+				}
+			}
+		}
+	}
+	return sb.String()
+}
+
+// buildSidecarVolumes generates volume YAML for sidecar support.
+// Creates a shared emptyDir + per-sidecar /tmp emptyDir volumes.
+// Returns the YAML string to append to the volumes section (8-space base indent).
+func buildSidecarVolumes(sidecars []spec.SidecarSpec) string {
+	if len(sidecars) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	// Shared emptyDir for engine <-> sidecar file handoff
+	sb.WriteString("        - name: shared\n")
+	sb.WriteString("          emptyDir:\n")
+	sb.WriteString("            sizeLimit: 1Gi\n")
+	// Per-sidecar /tmp volumes (needed for tools like ffmpeg)
+	for _, sc := range sidecars {
+		fmt.Fprintf(&sb, "        - name: tmp-%s\n", sc.Name)
+		sb.WriteString("          emptyDir:\n")
+		sb.WriteString("            sizeLimit: 256Mi\n")
+	}
+	return sb.String()
+}
+
 // GenerateK8sManifests produces K8s manifests for deploying a workflow.
 func GenerateK8sManifests(wf *spec.Workflow, imageTag, namespace string, opts DeployOptions) []Manifest {
 	manifests := make([]Manifest, 0, 2)
@@ -243,7 +369,7 @@ func GenerateK8sManifests(wf *spec.Workflow, imageTag, namespace string, opts De
 		proxyHost = strings.TrimPrefix(opts.ModuleProxyURL, "http://")
 		proxyHost = strings.TrimRight(proxyHost, "/")
 	}
-	denoFlags := spec.DeriveDenoFlags(wf.Contract, proxyHost)
+	denoFlags := spec.DeriveDenoFlags(wf.Contract, wf.Sidecars, proxyHost)
 	if len(denoFlags) > 0 {
 		var lines []string
 		lines = append(lines, "          command:")
@@ -261,6 +387,18 @@ func GenerateK8sManifests(wf *spec.Workflow, imageTag, namespace string, opts De
 		}
 		commandArgsBlock = strings.Join(lines, "\n") + "\n"
 	}
+
+	// Build sidecar containers block (empty string if no sidecars)
+	sidecarContainersBlock := buildSidecarContainers(wf.Sidecars)
+
+	// Engine shared volume mount (only when sidecars declared)
+	engineSharedMount := ""
+	if len(wf.Sidecars) > 0 {
+		engineSharedMount = "            - name: shared\n              mountPath: /shared\n"
+	}
+
+	// Build sidecar volumes block (empty string if no sidecars)
+	sidecarVolumesBlock := buildSidecarVolumes(wf.Sidecars)
 
 	// Deployment with security hardening
 	deployment := fmt.Sprintf(`apiVersion: apps/v1
@@ -325,14 +463,14 @@ metadata:
               readOnly: true
             - name: tmp
               mountPath: /tmp
-%s          resources:
+%s%s          resources:
             requests:
               memory: "64Mi"
               cpu: "100m"
             limits:
               memory: "256Mi"
               cpu: "500m"
-      volumes:
+%s      volumes:
         - name: code
           configMap:
             name: %s-code
@@ -345,7 +483,7 @@ metadata:
         - name: tmp
           emptyDir:
             sizeLimit: 512Mi
-%s`, wf.Name, namespace, labels, buildDeployAnnotations(wf.Metadata, wf.Triggers, wf.Description), wf.Name, labels, runtimeClassLine, imageTag, imagePullPolicy, commandArgsBlock, importMapVolumeMount, wf.Name, strings.Join(configMapItems, "\n"), wf.Name, importMapVolume)
+%s%s`, wf.Name, namespace, labels, buildDeployAnnotations(wf.Metadata, wf.Triggers, wf.Description), wf.Name, labels, runtimeClassLine, imageTag, imagePullPolicy, commandArgsBlock, engineSharedMount, importMapVolumeMount, sidecarContainersBlock, wf.Name, strings.Join(configMapItems, "\n"), wf.Name, sidecarVolumesBlock, importMapVolume)
 
 	manifests = append(manifests, Manifest{
 		Kind: "Deployment", Name: wf.Name, Content: deployment,

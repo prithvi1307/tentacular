@@ -77,7 +77,7 @@ contract:
 	}
 
 	// Step 3: Verify DeriveDenoFlags returns broad --allow-net (dynamic-target present)
-	denoFlags := spec.DeriveDenoFlags(wf.Contract, "")
+	denoFlags := spec.DeriveDenoFlags(wf.Contract, nil, "")
 	if denoFlags == nil {
 		t.Fatal("expected non-nil DeriveDenoFlags result for contract with dependencies")
 	}
@@ -103,12 +103,12 @@ contract:
 	// Should have scoped --allow-env
 	foundScopedEnv := false
 	for _, flag := range denoFlags {
-		if flag == "--allow-env=DENO_DIR,HOME,TELEMETRY_SINK" {
+		if flag == "--allow-env=DENO_DIR,HOME,SPIFFE_ENDPOINT_SOCKET,SPIFFE_ID,SPIFFE_ID_PATH,SVID_CERT_PATH,TELEMETRY_SINK" {
 			foundScopedEnv = true
 		}
 	}
 	if !foundScopedEnv {
-		t.Error("expected --allow-env=DENO_DIR,HOME,TELEMETRY_SINK in derived flags")
+		t.Error("expected --allow-env=DENO_DIR,HOME,SPIFFE_ENDPOINT_SOCKET,SPIFFE_ID,SPIFFE_ID_PATH,SVID_CERT_PATH,TELEMETRY_SINK in derived flags")
 	}
 
 	// Step 4: Verify derived secrets
@@ -252,7 +252,7 @@ contract:
 	}
 
 	// DeriveDenoFlags should return scoped --allow-net= with specific hosts
-	denoFlags := spec.DeriveDenoFlags(wf.Contract, "")
+	denoFlags := spec.DeriveDenoFlags(wf.Contract, nil, "")
 	if denoFlags == nil {
 		t.Fatal("expected non-nil DeriveDenoFlags result")
 	}
@@ -327,7 +327,7 @@ edges: []
 	}
 
 	// DeriveDenoFlags should return nil
-	denoFlags := spec.DeriveDenoFlags(wf.Contract, "")
+	denoFlags := spec.DeriveDenoFlags(wf.Contract, nil, "")
 	if denoFlags != nil {
 		t.Errorf("expected nil DeriveDenoFlags for nil contract, got %v", denoFlags)
 	}
