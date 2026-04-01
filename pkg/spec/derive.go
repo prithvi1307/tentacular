@@ -257,15 +257,42 @@ func HasModuleProxyDeps(wf *Workflow) bool {
 }
 
 // DeriveDenoFlags returns the complete Deno command with permission flags based on contract dependencies.
-// Returns nil if contract is nil or has no dependencies.
+// Returns nil if contract is nil or has no dependencies and no sidecars.
 // When any dependency has type "dynamic-target", returns broad --allow-net.
 // When all dependencies are fixed-host, returns scoped --allow-net=host1:port,host2:port,...
 // Always includes 0.0.0.0:8080 in scoped mode for internal health endpoints.
 // When jsr/npm deps are present, adds the module proxy host to the scoped allow list.
+// When sidecars are present, adds localhost:PORT for each sidecar and /shared to read/write paths.
 // Scopes --allow-env to DENO_DIR,HOME,TELEMETRY_SINK.
-func DeriveDenoFlags(c *Contract, proxyHost string) []string {
-	if c == nil || len(c.Dependencies) == 0 {
+func DeriveDenoFlags(c *Contract, sidecars []SidecarSpec, proxyHost string) []string {
+	if (c == nil || len(c.Dependencies) == 0) && len(sidecars) == 0 {
 		return nil
+	}
+
+	// Sidecars present but no contract — generate minimal flags with sidecar localhost entries
+	if c == nil || len(c.Dependencies) == 0 {
+		var allowedHosts []string
+		for _, sc := range sidecars {
+			allowedHosts = append(allowedHosts, "localhost:"+strconv.Itoa(sc.Port))
+		}
+		allowedHosts = append(allowedHosts, "0.0.0.0:8080")
+		sort.Strings(allowedHosts)
+
+		return []string{
+			"deno",
+			"run",
+			"--no-lock",
+			"--unstable-net",
+			"--allow-net=" + strings.Join(allowedHosts, ","),
+			"--allow-read=/app,/shared",
+			"--allow-write=/tmp,/shared",
+			"--allow-env=DENO_DIR,HOME,SPIFFE_ENDPOINT_SOCKET,SPIFFE_ID,SPIFFE_ID_PATH,SVID_CERT_PATH,TELEMETRY_SINK",
+			"engine/main.ts",
+			"--workflow",
+			"/app/workflow/workflow.yaml",
+			"--port",
+			"8080",
+		}
 	}
 
 	// Check if any dependency is dynamic-target
@@ -316,6 +343,15 @@ func DeriveDenoFlags(c *Contract, proxyHost string) []string {
 			}
 		}
 
+		// Add localhost:PORT for each declared sidecar
+		for _, sc := range sidecars {
+			hostPort := "localhost:" + strconv.Itoa(sc.Port)
+			if !seen[hostPort] {
+				allowedHosts = append(allowedHosts, hostPort)
+				seen[hostPort] = true
+			}
+		}
+
 		// Always add module proxy host — engine jsr: deps route through esm.sh
 		if proxyHost != "" && !seen[proxyHost] {
 			allowedHosts = append(allowedHosts, proxyHost)
@@ -332,14 +368,22 @@ func DeriveDenoFlags(c *Contract, proxyHost string) []string {
 		allowNetFlag = "--allow-net=" + strings.Join(allowedHosts, ",")
 	}
 
+	// Determine read/write paths based on sidecar presence
+	allowReadFlag := "--allow-read=/app"
+	allowWriteFlag := "--allow-write=/tmp"
+	if len(sidecars) > 0 {
+		allowReadFlag = "--allow-read=/app,/shared"
+		allowWriteFlag = "--allow-write=/tmp,/shared"
+	}
+
 	flags := []string{
 		"deno",
 		"run",
 		"--no-lock",
 		"--unstable-net",
 		allowNetFlag,
-		"--allow-read=/app",
-		"--allow-write=/tmp",
+		allowReadFlag,
+		allowWriteFlag,
 		"--allow-env=DENO_DIR,HOME,SPIFFE_ENDPOINT_SOCKET,SPIFFE_ID,SPIFFE_ID_PATH,SVID_CERT_PATH,TELEMETRY_SINK",
 	}
 

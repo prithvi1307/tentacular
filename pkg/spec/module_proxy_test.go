@@ -161,7 +161,7 @@ func TestDeriveDenoFlagsModuleProxy(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(c, proxyHost)
+	flags := DeriveDenoFlags(c, nil, proxyHost)
 	if flags == nil {
 		t.Fatal("expected non-nil flags")
 	}
@@ -207,7 +207,7 @@ func TestDeriveDenoFlagsAlwaysIncludesProxy(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(c, "some-proxy:8080")
+	flags := DeriveDenoFlags(c, nil, "some-proxy:8080")
 	flagStr := strings.Join(flags, " ")
 
 	if !strings.Contains(flagStr, "some-proxy:8080") {

@@ -9,6 +9,7 @@ type Workflow struct {
 	Version     string              `yaml:"version"`
 	Description string              `yaml:"description"`
 	Deployment  DeploymentConfig    `yaml:"deployment,omitempty"`
+	Sidecars    []SidecarSpec       `yaml:"sidecars,omitempty"`
 	Config      WorkflowConfig      `yaml:"config"`
 	Triggers    []Trigger           `yaml:"triggers"`
 	Edges       []Edge              `yaml:"edges"`
@@ -111,4 +112,31 @@ type EgressOverride struct {
 	ToCIDR string   `yaml:"toCIDR"`
 	Reason string   `yaml:"reason,omitempty"`
 	Ports  []string `yaml:"ports,omitempty"`
+}
+
+// SidecarSpec declares an auxiliary container that runs alongside the engine.
+//
+//nolint:govet // fieldalignment: readable field order takes precedence over GC optimization
+type SidecarSpec struct {
+	Name       string            `yaml:"name"`
+	Image      string            `yaml:"image"`
+	Command    []string          `yaml:"command,omitempty"`
+	Args       []string          `yaml:"args,omitempty"`
+	Env        map[string]string `yaml:"env,omitempty"`
+	Port       int               `yaml:"port"`
+	Protocol   string            `yaml:"protocol,omitempty"`   // "http" (default) or "grpc"
+	HealthPath string            `yaml:"healthPath,omitempty"` // readiness probe path, default "/health"
+	Resources  *ResourceSpec     `yaml:"resources,omitempty"`
+}
+
+// ResourceSpec declares resource requests and limits for a container.
+type ResourceSpec struct {
+	Requests ResourceValues `yaml:"requests,omitempty"`
+	Limits   ResourceValues `yaml:"limits,omitempty"`
+}
+
+// ResourceValues holds CPU and memory resource quantities.
+type ResourceValues struct {
+	CPU    string `yaml:"cpu,omitempty"`
+	Memory string `yaml:"memory,omitempty"`
 }
