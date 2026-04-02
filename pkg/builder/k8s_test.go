@@ -1004,3 +1004,204 @@ func TestK8sManifestNoMetadataNoAnnotations(t *testing.T) {
 		t.Error("expected no annotations block in Service when metadata is nil")
 	}
 }
+
+func makeTestWorkflowWithSidecar(name string) *spec.Workflow {
+	wf := makeTestWorkflow(name)
+	wf.Sidecars = []spec.SidecarSpec{
+		{
+			Name:       "ffmpeg",
+			Image:      "ghcr.io/randybias/tentacular-ffmpeg-sidecar:v1.0.0",
+			Port:       9000,
+			HealthPath: "/health",
+		},
+	}
+	return wf
+}
+
+func TestK8sManifestSidecarContainer(t *testing.T) {
+	wf := makeTestWorkflowWithSidecar("sidecar-test")
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "name: ffmpeg") {
+		t.Error("expected sidecar container name ffmpeg in deployment")
+	}
+	if !strings.Contains(dep, "image: ghcr.io/randybias/tentacular-ffmpeg-sidecar:v1.0.0") {
+		t.Error("expected sidecar image in deployment")
+	}
+	if !strings.Contains(dep, "containerPort: 9000") {
+		t.Error("expected sidecar containerPort 9000 in deployment")
+	}
+}
+
+func TestK8sManifestSidecarSecurityContext(t *testing.T) {
+	wf := makeTestWorkflowWithSidecar("sidecar-sec")
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "readOnlyRootFilesystem: true") {
+		t.Error("expected readOnlyRootFilesystem: true in sidecar security context")
+	}
+	if !strings.Contains(dep, "allowPrivilegeEscalation: false") {
+		t.Error("expected allowPrivilegeEscalation: false in sidecar security context")
+	}
+	if !strings.Contains(dep, "- ALL") {
+		t.Error("expected capabilities drop ALL in sidecar security context")
+	}
+}
+
+func TestK8sManifestSidecarReadinessProbe(t *testing.T) {
+	wf := makeTestWorkflowWithSidecar("sidecar-probe")
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "port: 9000") {
+		t.Error("expected readiness probe port 9000 in deployment")
+	}
+	if !strings.Contains(dep, "initialDelaySeconds: 3") {
+		t.Error("expected initialDelaySeconds: 3 in sidecar readiness probe")
+	}
+}
+
+func TestK8sManifestSidecarDefaultHealthPath(t *testing.T) {
+	wf := makeTestWorkflow("sidecar-health-default")
+	wf.Sidecars = []spec.SidecarSpec{
+		{Name: "ffmpeg", Image: "ffmpeg:latest", Port: 9000},
+	}
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "path: /health") {
+		t.Error("expected default health path /health in sidecar readiness probe")
+	}
+}
+
+func TestK8sManifestSidecarCustomHealthPath(t *testing.T) {
+	wf := makeTestWorkflow("sidecar-custom-health")
+	wf.Sidecars = []spec.SidecarSpec{
+		{Name: "ffmpeg", Image: "ffmpeg:latest", Port: 9000, HealthPath: "/ready"},
+	}
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "path: /ready") {
+		t.Error("expected custom health path /ready in sidecar readiness probe")
+	}
+}
+
+func TestK8sManifestSharedVolume(t *testing.T) {
+	wf := makeTestWorkflowWithSidecar("sidecar-shared-vol")
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "name: shared") {
+		t.Error("expected shared volume when sidecars declared")
+	}
+	if !strings.Contains(dep, "sizeLimit: 1Gi") {
+		t.Error("expected shared volume sizeLimit 1Gi")
+	}
+}
+
+func TestK8sManifestSharedVolumeOnEngine(t *testing.T) {
+	wf := makeTestWorkflowWithSidecar("sidecar-engine-shared")
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "mountPath: /shared") {
+		t.Error("expected engine container to have /shared volumeMount when sidecars declared")
+	}
+}
+
+func TestK8sManifestNoSharedVolumeWithoutSidecars(t *testing.T) {
+	wf := makeTestWorkflow("no-sidecar-wf")
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if strings.Contains(dep, "name: shared") {
+		t.Error("expected no shared volume when no sidecars declared")
+	}
+	if strings.Contains(dep, "mountPath: /shared") {
+		t.Error("expected no /shared mount when no sidecars declared")
+	}
+}
+
+func TestK8sManifestSidecarTmpVolume(t *testing.T) {
+	wf := makeTestWorkflowWithSidecar("sidecar-tmp-vol")
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "name: tmp-ffmpeg") {
+		t.Error("expected per-sidecar /tmp volume named tmp-ffmpeg")
+	}
+	if !strings.Contains(dep, "sizeLimit: 256Mi") {
+		t.Error("expected sidecar tmp volume sizeLimit 256Mi")
+	}
+}
+
+func TestK8sManifestSidecarResources(t *testing.T) {
+	wf := makeTestWorkflow("sidecar-resources")
+	wf.Sidecars = []spec.SidecarSpec{
+		{
+			Name:  "ffmpeg",
+			Image: "ffmpeg:latest",
+			Port:  9000,
+			Resources: &spec.ResourceSpec{
+				Requests: spec.ResourceValues{CPU: "500m", Memory: "256Mi"},
+				Limits:   spec.ResourceValues{CPU: "1000m", Memory: "512Mi"},
+			},
+		},
+	}
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, `cpu: "500m"`) {
+		t.Error("expected cpu request 500m in sidecar resources")
+	}
+	if !strings.Contains(dep, `memory: "256Mi"`) {
+		t.Error("expected memory request 256Mi in sidecar resources")
+	}
+}
+
+func TestK8sManifestSidecarEnv(t *testing.T) {
+	wf := makeTestWorkflow("sidecar-env")
+	wf.Sidecars = []spec.SidecarSpec{
+		{
+			Name:  "ffmpeg",
+			Image: "ffmpeg:latest",
+			Port:  9000,
+			Env:   map[string]string{"LOG_LEVEL": "debug", "THREADS": "4"},
+		},
+	}
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "name: LOG_LEVEL") {
+		t.Error("expected LOG_LEVEL env var in sidecar")
+	}
+	if !strings.Contains(dep, "name: THREADS") {
+		t.Error("expected THREADS env var in sidecar")
+	}
+}
+
+func TestK8sManifestMultipleSidecars(t *testing.T) {
+	wf := makeTestWorkflow("multi-sidecar")
+	wf.Sidecars = []spec.SidecarSpec{
+		{Name: "ffmpeg", Image: "ffmpeg:latest", Port: 9000},
+		{Name: "chrome", Image: "chrome:latest", Port: 9001},
+	}
+	manifests := GenerateK8sManifests(wf, "engine:latest", "default", DeployOptions{})
+	dep := manifests[0].Content
+
+	if !strings.Contains(dep, "name: ffmpeg") {
+		t.Error("expected ffmpeg sidecar in deployment")
+	}
+	if !strings.Contains(dep, "name: chrome") {
+		t.Error("expected chrome sidecar in deployment")
+	}
+	if !strings.Contains(dep, "name: tmp-ffmpeg") {
+		t.Error("expected tmp-ffmpeg volume for ffmpeg sidecar")
+	}
+	if !strings.Contains(dep, "name: tmp-chrome") {
+		t.Error("expected tmp-chrome volume for chrome sidecar")
+	}
+}

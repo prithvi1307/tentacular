@@ -10,6 +10,23 @@ export interface WorkflowSpec {
   edges: Edge[];
   config?: WorkflowConfig;
   contract?: ContractSpec;
+  sidecars?: SidecarSpec[];
+}
+
+/** Sidecar container that runs alongside the engine in the same pod */
+export interface SidecarSpec {
+  name: string;
+  image: string;
+  command?: string[];
+  args?: string[];
+  env?: Record<string, string>;
+  port: number;
+  protocol?: "http" | "grpc";
+  healthPath?: string;
+  resources?: {
+    requests?: { cpu?: string; memory?: string };
+    limits?: { cpu?: string; memory?: string };
+  };
 }
 
 /** Contract specification for external dependencies */

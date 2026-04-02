@@ -130,6 +130,13 @@ func Parse(data []byte) (*Workflow, []string) {
 		}
 	}
 
+	// Sidecar validation (optional section)
+	if len(wf.Sidecars) > 0 {
+		if sidecarErrs := validateSidecars(wf.Sidecars); len(sidecarErrs) > 0 {
+			errs = append(errs, sidecarErrs...)
+		}
+	}
+
 	if len(errs) > 0 {
 		return nil, errs
 	}
@@ -332,4 +339,106 @@ func ValidateContract(c *Contract) []string {
 func isValidCIDR(s string) bool {
 	_, _, err := net.ParseCIDR(s)
 	return err == nil
+}
+
+// hasNewline returns true if s contains a newline or carriage return character.
+// Used to prevent YAML injection via string fields interpolated into manifest templates.
+func hasNewline(s string) bool {
+	return strings.ContainsAny(s, "\n\r")
+}
+
+// validateSidecars validates the sidecars section of a workflow spec.
+func validateSidecars(sidecars []SidecarSpec) []string {
+	var errs []string
+	names := make(map[string]bool)
+	ports := make(map[int]bool)
+
+	for i, sc := range sidecars {
+		prefix := fmt.Sprintf("sidecars[%d]", i)
+
+		// Name: required, must match identRe
+		if sc.Name == "" {
+			errs = append(errs, prefix+": name is required")
+		} else if !identRe.MatchString(sc.Name) {
+			errs = append(errs, fmt.Sprintf("%s: name must match [a-z][a-z0-9_-]*, got: %q", prefix, sc.Name))
+		} else {
+			if names[sc.Name] {
+				errs = append(errs, fmt.Sprintf("%s: duplicate sidecar name %q", prefix, sc.Name))
+			}
+			names[sc.Name] = true
+		}
+
+		// Image: required, non-empty, no newlines (YAML injection prevention)
+		if sc.Image == "" {
+			errs = append(errs, prefix+": image is required")
+		} else if hasNewline(sc.Image) {
+			errs = append(errs, prefix+": image must not contain newlines")
+		}
+
+		// Port: required, 1024-65535, not 8080 (engine port)
+		if sc.Port == 0 {
+			errs = append(errs, prefix+": port is required")
+		} else if sc.Port < 1024 || sc.Port > 65535 {
+			errs = append(errs, fmt.Sprintf("%s: port must be 1024-65535, got: %d", prefix, sc.Port))
+		} else if sc.Port == 8080 {
+			errs = append(errs, prefix+": port 8080 is reserved for the engine")
+		} else {
+			if ports[sc.Port] {
+				errs = append(errs, fmt.Sprintf("%s: duplicate port %d", prefix, sc.Port))
+			}
+			ports[sc.Port] = true
+		}
+
+		// Protocol: if set, must be "http" or "grpc"
+		if sc.Protocol != "" && sc.Protocol != "http" && sc.Protocol != "grpc" {
+			errs = append(errs, fmt.Sprintf("%s: protocol must be \"http\" or \"grpc\", got: %q", prefix, sc.Protocol))
+		}
+
+		// HealthPath: no newlines (YAML injection prevention)
+		if hasNewline(sc.HealthPath) {
+			errs = append(errs, prefix+": healthPath must not contain newlines")
+		}
+
+		// Command entries: no newlines
+		for j, c := range sc.Command {
+			if hasNewline(c) {
+				errs = append(errs, fmt.Sprintf("%s.command[%d]: must not contain newlines", prefix, j))
+			}
+		}
+
+		// Args entries: no newlines
+		for j, a := range sc.Args {
+			if hasNewline(a) {
+				errs = append(errs, fmt.Sprintf("%s.args[%d]: must not contain newlines", prefix, j))
+			}
+		}
+
+		// Env keys and values: no newlines
+		for k, v := range sc.Env {
+			if hasNewline(k) {
+				errs = append(errs, fmt.Sprintf("%s.env: key %q must not contain newlines", prefix, k))
+			}
+			if hasNewline(v) {
+				errs = append(errs, fmt.Sprintf("%s.env[%q]: value must not contain newlines", prefix, k))
+			}
+		}
+
+		// Resource strings: no newlines
+		if sc.Resources != nil {
+			if hasNewline(sc.Resources.Requests.CPU) {
+				errs = append(errs, prefix+": resources.requests.cpu must not contain newlines")
+			}
+			if hasNewline(sc.Resources.Requests.Memory) {
+				errs = append(errs, prefix+": resources.requests.memory must not contain newlines")
+			}
+			if hasNewline(sc.Resources.Limits.CPU) {
+				errs = append(errs, prefix+": resources.limits.cpu must not contain newlines")
+			}
+			if hasNewline(sc.Resources.Limits.Memory) {
+				errs = append(errs, prefix+": resources.limits.memory must not contain newlines")
+			}
+		}
+	}
+
+	return errs
 }

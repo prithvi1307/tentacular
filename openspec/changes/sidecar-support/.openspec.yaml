@@ -1,0 +1,7 @@
+name: sidecar-support
+status: proposed
+description: >
+  Add sidecar container support to workflow spec types, parser validation,
+  DeriveDenoFlags, and K8s builder for multi-container pod generation.
+artifacts:
+  - proposal

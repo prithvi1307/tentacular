@@ -274,7 +274,7 @@ func TestGetSecretKeyName(t *testing.T) {
 }
 
 func TestDeriveDenoFlagsNilContract(t *testing.T) {
-	flags := DeriveDenoFlags(nil, "")
+	flags := DeriveDenoFlags(nil, nil, "")
 	if flags != nil {
 		t.Errorf("expected nil flags for nil contract, got %v", flags)
 	}
@@ -284,7 +284,7 @@ func TestDeriveDenoFlagsEmptyDependencies(t *testing.T) {
 	contract := &Contract{
 		Dependencies: map[string]Dependency{},
 	}
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags != nil {
 		t.Errorf("expected nil flags for empty dependencies, got %v", flags)
 	}
@@ -301,7 +301,7 @@ func TestDeriveDenoFlagsFixedHostScoped(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags for fixed-host dependency")
 	}
@@ -345,7 +345,7 @@ func TestDeriveDenoFlagsDynamicTargetBroad(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags for dynamic-target dependency")
 	}
@@ -380,7 +380,7 @@ func TestDeriveDenoFlagsMixedDependenciesBroad(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags for mixed dependencies")
 	}
@@ -414,7 +414,7 @@ func TestDeriveDenoFlagsDefaultPortResolution(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags for fixed-host dependencies")
 	}
@@ -453,7 +453,7 @@ func TestDeriveDenoFlagsMultipleFixedSorted(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags for multiple fixed-host dependencies")
 	}
@@ -483,7 +483,7 @@ func TestDeriveDenoFlagsAlwaysIncludesLocalhost(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags")
 	}
@@ -512,7 +512,7 @@ func TestDeriveDenoFlagsScopedAllowEnv(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags")
 	}
@@ -570,7 +570,7 @@ func TestDenoFlagsSkipExoskeletonDeps(t *testing.T) {
 
 	// With only exoskeleton deps (no host/port), DeriveDenoFlags should still
 	// return flags but with no dependency hosts in --allow-net
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags")
 	}
@@ -638,7 +638,7 @@ func TestMixedDepsDenoFlags(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags")
 	}
@@ -680,7 +680,7 @@ func TestExoskeletonDepsWithDynamicTargetDoNotTriggerBroadNet(t *testing.T) {
 		},
 	}
 
-	flags := DeriveDenoFlags(contract, "")
+	flags := DeriveDenoFlags(contract, nil, "")
 	if flags == nil {
 		t.Fatal("expected non-nil flags")
 	}
@@ -691,5 +691,177 @@ func TestExoskeletonDepsWithDynamicTargetDoNotTriggerBroadNet(t *testing.T) {
 		if flag == "--allow-net" {
 			t.Error("expected scoped --allow-net, got broad --allow-net (tentacular-* dynamic dep should be skipped)")
 		}
+	}
+}
+
+func TestDeriveDenoFlagsSidecarLocalhost(t *testing.T) {
+	contract := &Contract{
+		Dependencies: map[string]Dependency{
+			"github": {
+				Protocol: "https",
+				Host:     "api.github.com",
+				Port:     443,
+			},
+		},
+	}
+	sidecars := []SidecarSpec{
+		{Name: "ffmpeg", Image: "ffmpeg:latest", Port: 9000},
+	}
+
+	flags := DeriveDenoFlags(contract, sidecars, "")
+	if flags == nil {
+		t.Fatal("expected non-nil flags")
+	}
+
+	allowNetFlag := ""
+	for _, flag := range flags {
+		if len(flag) > 11 && flag[:11] == "--allow-net" {
+			allowNetFlag = flag
+		}
+	}
+
+	if !strings.Contains(allowNetFlag, "localhost:9000") {
+		t.Errorf("expected localhost:9000 in --allow-net, got: %s", allowNetFlag)
+	}
+}
+
+func TestDeriveDenoFlagsSidecarSharedVolume(t *testing.T) {
+	contract := &Contract{
+		Dependencies: map[string]Dependency{
+			"github": {
+				Protocol: "https",
+				Host:     "api.github.com",
+				Port:     443,
+			},
+		},
+	}
+	sidecars := []SidecarSpec{
+		{Name: "ffmpeg", Image: "ffmpeg:latest", Port: 9000},
+	}
+
+	flags := DeriveDenoFlags(contract, sidecars, "")
+	if flags == nil {
+		t.Fatal("expected non-nil flags")
+	}
+
+	allowReadFlag := ""
+	allowWriteFlag := ""
+	for _, flag := range flags {
+		if len(flag) > 13 && flag[:13] == "--allow-read=" {
+			allowReadFlag = flag
+		}
+		if len(flag) > 14 && flag[:14] == "--allow-write=" {
+			allowWriteFlag = flag
+		}
+	}
+
+	if allowReadFlag != "--allow-read=/app,/shared" {
+		t.Errorf("expected --allow-read=/app,/shared, got: %s", allowReadFlag)
+	}
+	if allowWriteFlag != "--allow-write=/tmp,/shared" {
+		t.Errorf("expected --allow-write=/tmp,/shared, got: %s", allowWriteFlag)
+	}
+}
+
+func TestDeriveDenoFlagsMultipleSidecars(t *testing.T) {
+	contract := &Contract{
+		Dependencies: map[string]Dependency{
+			"github": {
+				Protocol: "https",
+				Host:     "api.github.com",
+				Port:     443,
+			},
+		},
+	}
+	sidecars := []SidecarSpec{
+		{Name: "ffmpeg", Image: "ffmpeg:latest", Port: 9000},
+		{Name: "chrome", Image: "chrome:latest", Port: 9001},
+	}
+
+	flags := DeriveDenoFlags(contract, sidecars, "")
+	if flags == nil {
+		t.Fatal("expected non-nil flags")
+	}
+
+	allowNetFlag := ""
+	for _, flag := range flags {
+		if len(flag) > 11 && flag[:11] == "--allow-net" {
+			allowNetFlag = flag
+		}
+	}
+
+	if !strings.Contains(allowNetFlag, "localhost:9000") {
+		t.Errorf("expected localhost:9000 in --allow-net, got: %s", allowNetFlag)
+	}
+	if !strings.Contains(allowNetFlag, "localhost:9001") {
+		t.Errorf("expected localhost:9001 in --allow-net, got: %s", allowNetFlag)
+	}
+}
+
+func TestDeriveDenoFlagsSidecarsNoContract(t *testing.T) {
+	sidecars := []SidecarSpec{
+		{Name: "ffmpeg", Image: "ffmpeg:latest", Port: 9000},
+	}
+
+	flags := DeriveDenoFlags(nil, sidecars, "")
+	if flags == nil {
+		t.Fatal("expected non-nil flags for sidecars without contract")
+	}
+
+	allowNetFlag := ""
+	allowReadFlag := ""
+	allowWriteFlag := ""
+	for _, flag := range flags {
+		if len(flag) > 11 && flag[:11] == "--allow-net" {
+			allowNetFlag = flag
+		}
+		if len(flag) > 13 && flag[:13] == "--allow-read=" {
+			allowReadFlag = flag
+		}
+		if len(flag) > 14 && flag[:14] == "--allow-write=" {
+			allowWriteFlag = flag
+		}
+	}
+
+	if !strings.Contains(allowNetFlag, "localhost:9000") {
+		t.Errorf("expected localhost:9000 in --allow-net, got: %s", allowNetFlag)
+	}
+	if allowReadFlag != "--allow-read=/app,/shared" {
+		t.Errorf("expected --allow-read=/app,/shared, got: %s", allowReadFlag)
+	}
+	if allowWriteFlag != "--allow-write=/tmp,/shared" {
+		t.Errorf("expected --allow-write=/tmp,/shared, got: %s", allowWriteFlag)
+	}
+}
+
+func TestDeriveDenoFlagsDynamicTargetWithSidecars(t *testing.T) {
+	contract := &Contract{
+		Dependencies: map[string]Dependency{
+			"external-api": {
+				Protocol: "https",
+				Type:     "dynamic-target",
+				CIDR:     "0.0.0.0/0",
+				DynPorts: []string{"443/TCP"},
+			},
+		},
+	}
+	sidecars := []SidecarSpec{
+		{Name: "ffmpeg", Image: "ffmpeg:latest", Port: 9000},
+	}
+
+	flags := DeriveDenoFlags(contract, sidecars, "")
+	if flags == nil {
+		t.Fatal("expected non-nil flags")
+	}
+
+	// Dynamic target should still use broad --allow-net
+	allowNetFlag := ""
+	for _, flag := range flags {
+		if flag == "--allow-net" {
+			allowNetFlag = flag
+		}
+	}
+	if allowNetFlag != "--allow-net" {
+		t.Errorf("expected broad --allow-net for dynamic-target, got %v", flags)
 	}
 }

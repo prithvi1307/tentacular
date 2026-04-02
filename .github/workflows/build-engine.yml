@@ -7,6 +7,8 @@ on:
     paths:
       - 'engine/**'
       - 'Makefile'
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 env:
@@ -38,6 +40,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine image tags
+        id: tags
+        run: |
+          TAGS="${{ env.IMAGE }}:${{ github.sha }}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            TAGS="$TAGS,${{ env.IMAGE }}:${VERSION}"
+            # Only tag as :latest for non-prerelease tags
+            if [[ "$VERSION" != *-rc* && "$VERSION" != *-beta* && "$VERSION" != *-alpha* ]]; then
+              TAGS="$TAGS,${{ env.IMAGE }}:latest"
+            fi
+          else
+            TAGS="$TAGS,${{ env.IMAGE }}:latest"
+          fi
+          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -45,8 +63,6 @@ jobs:
           file: engine/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ github.sha }}
+          tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
